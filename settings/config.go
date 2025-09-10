@@ -3,6 +3,7 @@ package settings
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"slices"
 
@@ -66,7 +67,7 @@ type DomedikConfig struct {
 	ApiKey   string
 }
 
-func getFromProvider(deps []string) *DomedikConfig {
+func getFromProvider(deps []string) (*DomedikConfig, error) {
 	ctx := context.Background()
 	region := os.Getenv("DOMEDIK_REGION")
 	port := os.Getenv("DOMEDIK_PORT")
@@ -81,28 +82,32 @@ func getFromProvider(deps []string) *DomedikConfig {
 	}
 	client := secretsmanager.NewFromConfig(cfg)
 
-	secret := func(secretId string) string {
+	secret, err := func(secretId string) (string, error) {
 		input := &secretsmanager.GetSecretValueInput{
 			SecretId: aws.String(secretId),
 		}
 
 		result, err := client.GetSecretValue(ctx, input)
 		if err != nil {
-			panic("failed to get AWS secret: " + secretId)
+			return "", err
 		}
 
 		if result.SecretString == nil {
-			panic("secret string is nil: " + secretId)
+			return "", err
 		}
 
-		return *result.SecretString
+		return *result.SecretString, nil
 	}(secretId)
+
+	if err != nil {
+		return nil, err
+	}
 
 	// Unmarshaling database config
 	var dbconf *DatabaseConfig
 	if slices.Contains(deps, "database") {
 		if err := json.Unmarshal([]byte(secret), &dbconf); err != nil {
-			panic("failed to unmarshal database config")
+			return nil, errors.New("failed to unmarshal database config")
 		}
 		dbconf.SSLMode = "require"
 	}
@@ -111,7 +116,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 	var cacheconf *CacheConfig
 	if slices.Contains(deps, "cache") {
 		if err := json.Unmarshal([]byte(secret), &cacheconf); err != nil {
-			panic("failed to unmarshal cache config")
+			return nil, errors.New("failed to unmarshal cache config")
 		}
 	}
 
@@ -119,7 +124,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 	var oauthconf *OAuthConfig
 	if slices.Contains(deps, "oauth") {
 		if err := json.Unmarshal([]byte(secret), &oauthconf); err != nil {
-			panic("failed to unmarshal oauth config")
+			return nil, errors.New("failed to unmarshal oauth config")
 		}
 	}
 
@@ -127,7 +132,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 	var eventsconf *EventsConfig
 	if slices.Contains(deps, "events") {
 		if err := json.Unmarshal([]byte(secret), &eventsconf); err != nil {
-			panic("failed to unmarshal oauth config")
+			return nil, errors.New("failed to unmarshal oauth config")
 		}
 	}
 
@@ -135,7 +140,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 	var encconf *EncryptionConfig
 	if slices.Contains(deps, "encryption") {
 		if err := json.Unmarshal([]byte(secret), &encconf); err != nil {
-			panic("failed to unmarshal oauth config")
+			return nil, errors.New("failed to unmarshal oauth config")
 		}
 	}
 
@@ -143,7 +148,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 	var vectorconf *VectorConfig
 	if slices.Contains(deps, "vectors") {
 		if err := json.Unmarshal([]byte(secret), &vectorconf); err != nil {
-			panic("failed to unmarshal vector config")
+			return nil, errors.New("failed to unmarshal vector config")
 		}
 	}
 
@@ -157,7 +162,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 		Events:   eventsconf,
 		Vectors:  vectorconf,
 		Crypto:   encconf,
-	}
+	}, nil
 }
 
 func getFromEnv(deps []string) *DomedikConfig {
@@ -224,11 +229,11 @@ func getFromEnv(deps []string) *DomedikConfig {
 	}
 }
 
-func Resolve(deps []string) *DomedikConfig {
+func Resolve(deps []string) (*DomedikConfig, error) {
 	env := os.Getenv("DOMEDIK_ENV")
 	if env == "prod" {
 		return getFromProvider(deps)
 	} else {
-		return getFromEnv(deps)
+		return getFromEnv(deps), nil
 	}
 }
