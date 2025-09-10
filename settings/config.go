@@ -63,6 +63,7 @@ type DomedikConfig struct {
 	Events   *EventsConfig
 	Vectors  *VectorConfig
 	BindPort string
+	ApiKey   string
 }
 
 func getFromProvider(deps []string) *DomedikConfig {
@@ -70,6 +71,9 @@ func getFromProvider(deps []string) *DomedikConfig {
 	region := os.Getenv("DOMEDIK_REGION")
 	port := os.Getenv("DOMEDIK_PORT")
 	secretId := os.Getenv("SECRET_ID")
+
+	// Remove after correct deployment
+	apikey := os.Getenv("API_KEY")
 
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
@@ -145,6 +149,7 @@ func getFromProvider(deps []string) *DomedikConfig {
 
 	return &DomedikConfig{
 		BindPort: port,
+		ApiKey:   apikey,
 		Cloud:    &CloudConfig{Region: region},
 		DB:       dbconf,
 		Cache:    cacheconf,
@@ -158,6 +163,8 @@ func getFromProvider(deps []string) *DomedikConfig {
 func getFromEnv(deps []string) *DomedikConfig {
 	port := os.Getenv("DOMEDIK_PORT")
 	region := os.Getenv("DOMEDIK_REGION")
+	// Remove after correct deployment
+	apikey := os.Getenv("API_KEY")
 
 	dbconf := &DatabaseConfig{}
 	if slices.Contains(deps, "database") {
@@ -205,6 +212,7 @@ func getFromEnv(deps []string) *DomedikConfig {
 	}
 
 	return &DomedikConfig{
+		ApiKey:   apikey,
 		BindPort: port,
 		DB:       dbconf,
 		Cache:    cacheconf,
