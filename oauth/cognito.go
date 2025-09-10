@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Domedik/trussrod/jwks"
@@ -132,6 +133,7 @@ func NewCognitoClient(c *settings.DomedikConfig) (*Cognito, error) {
 	if err != nil {
 		return nil, err
 	}
+	url := fmt.Sprintf("%s/.well-known/jwks.json", c.OAuth.Issuer)
 
 	return &Cognito{
 		client: cognitoidentityprovider.NewFromConfig(conf),
@@ -143,7 +145,7 @@ func NewCognitoClient(c *settings.DomedikConfig) (*Cognito, error) {
 			secretHash := base64.StdEncoding.EncodeToString(hash)
 			return secretHash
 		},
-		jwks:   jwks.NewJWKSCache(c.OAuth.Issuer, time.Minute*10),
+		jwks:   jwks.NewJWKSCache(url, time.Minute*10),
 		config: c.OAuth,
 	}, nil
 }

@@ -14,13 +14,14 @@ import (
 )
 
 type DatabaseConfig struct {
-	Driver   string
-	Host     string `json:"DB_HOST"`
-	Port     string `json:"DB_PORT"`
-	Name     string `json:"DB_NAME"`
-	SSLMode  string
-	User     string `json:"DB_USER"`
-	Password string `json:"DB_PASSWORD"`
+	Driver     string
+	Host       string `json:"DB_HOST"`
+	Port       string `json:"DB_PORT"`
+	Name       string `json:"DB_NAME"`
+	SSLMode    string
+	User       string `json:"DB_USER"`
+	Password   string `json:"DB_PASSWORD"`
+	SearchPath string `json:"DB_SEARCHPATH"`
 }
 
 type CacheConfig struct {
@@ -180,6 +181,7 @@ func getFromEnv(deps []string) *DomedikConfig {
 		dbconf.Name = os.Getenv("DB_NAME")
 		dbconf.User = os.Getenv("DB_USER")
 		dbconf.Password = os.Getenv("DB_PASSWORD")
+		dbconf.SearchPath = os.Getenv("DB_SEARCHPATH")
 		dbconf.SSLMode = "disable"
 	}
 

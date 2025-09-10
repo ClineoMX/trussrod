@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/Domedik/trussrod/settings"
@@ -14,15 +15,39 @@ type DB struct {
 	Conn *sql.DB
 }
 
-func getDSN(c *settings.DatabaseConfig) string {
-	return fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		c.Host, c.User, c.Password, c.Name, c.Port, c.SSLMode,
-	)
+func getURL(c *settings.DatabaseConfig) string {
+	var userInfo *url.Userinfo
+	if c.Password != "" {
+		userInfo = url.UserPassword(c.User, c.Password)
+	} else {
+		userInfo = url.User(c.User)
+	}
+	var driver = "postgres"
+	if c.Driver != "" {
+		driver = c.Driver
+	}
+
+	u := &url.URL{
+		Scheme: driver,
+		User:   userInfo,
+		Host:   fmt.Sprintf("%s:%s", c.Host, c.Port),
+		Path:   c.Name,
+	}
+
+	q := url.Values{}
+	if c.SSLMode != "" {
+		q.Set("sslmode", c.SSLMode)
+	}
+	if c.SearchPath != "" {
+		q.Set("options", fmt.Sprintf("-c search_path=%s", c.SearchPath))
+	}
+
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func New(c *settings.DatabaseConfig) (*DB, error) {
-	dsn := getDSN(c)
+	dsn := getURL(c)
 	var err error
 	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
