@@ -104,7 +104,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	// Unmarshaling database config
-	var dbconf *DatabaseConfig
+	dbconf := DatabaseConfig{}
 	if slices.Contains(deps, "database") {
 		if err := json.Unmarshal([]byte(secret), &dbconf); err != nil {
 			return nil, errors.New("failed to unmarshal database config")
@@ -113,7 +113,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	// Unmarshaling cache config
-	var cacheconf *CacheConfig
+	cacheconf := CacheConfig{}
 	if slices.Contains(deps, "cache") {
 		if err := json.Unmarshal([]byte(secret), &cacheconf); err != nil {
 			return nil, errors.New("failed to unmarshal cache config")
@@ -121,7 +121,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	// Unmarshaling oauth config
-	var oauthconf *OAuthConfig
+	oauthconf := OAuthConfig{}
 	if slices.Contains(deps, "oauth") {
 		if err := json.Unmarshal([]byte(secret), &oauthconf); err != nil {
 			return nil, errors.New("failed to unmarshal oauth config")
@@ -129,7 +129,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	// Unmarshaling events config
-	var eventsconf *EventsConfig
+	eventsconf := EventsConfig{}
 	if slices.Contains(deps, "events") {
 		if err := json.Unmarshal([]byte(secret), &eventsconf); err != nil {
 			return nil, errors.New("failed to unmarshal oauth config")
@@ -137,7 +137,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	// Unmarshaling crypto config
-	var encconf *EncryptionConfig
+	encconf := EncryptionConfig{}
 	if slices.Contains(deps, "encryption") {
 		if err := json.Unmarshal([]byte(secret), &encconf); err != nil {
 			return nil, errors.New("failed to unmarshal oauth config")
@@ -145,7 +145,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	// Unmarshaling vector config
-	var vectorconf *VectorConfig
+	vectorconf := VectorConfig{}
 	if slices.Contains(deps, "vectors") {
 		if err := json.Unmarshal([]byte(secret), &vectorconf); err != nil {
 			return nil, errors.New("failed to unmarshal vector config")
@@ -156,12 +156,12 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 		BindPort: port,
 		ApiKey:   apikey,
 		Cloud:    &CloudConfig{Region: region},
-		DB:       dbconf,
-		Cache:    cacheconf,
-		OAuth:    oauthconf,
-		Events:   eventsconf,
-		Vectors:  vectorconf,
-		Crypto:   encconf,
+		DB:       &dbconf,
+		Cache:    &cacheconf,
+		OAuth:    &oauthconf,
+		Events:   &eventsconf,
+		Vectors:  &vectorconf,
+		Crypto:   &encconf,
 	}, nil
 }
 
