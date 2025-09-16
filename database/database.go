@@ -2,17 +2,16 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/url"
 	"time"
 
 	"github.com/Domedik/trussrod/settings"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DB struct {
-	Conn *sql.DB
+	Pool *pgxpool.Pool
 }
 
 func getURL(c *settings.DatabaseConfig) string {
@@ -47,31 +46,26 @@ func getURL(c *settings.DatabaseConfig) string {
 }
 
 func New(c *settings.DatabaseConfig) (*DB, error) {
-	dsn := getURL(c)
 	var err error
-	conn, err := sql.Open("postgres", dsn)
+	cfg, err := pgxpool.ParseConfig(getURL(c))
 	if err != nil {
 		return nil, err
 	}
-
-	conn.SetMaxOpenConns(50)
-	conn.SetMaxIdleConns(10)
-	conn.SetConnMaxLifetime(10 * time.Minute)
-	conn.SetConnMaxIdleTime(5 * time.Minute)
+	cfg.MinConns = 2
+	cfg.MaxConns = 20
+	cfg.MaxConnLifetime = 10 * time.Minute
+	cfg.MaxConnIdleTime = 20 * time.Minute
+	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
 
 	return &DB{
-		Conn: conn,
-	}, nil
+		Pool: pool,
+	}, err
 }
 
 func (db *DB) Close() {
-	db.Conn.Close()
-}
-
-func (db *DB) Prepare(ctx context.Context, query string) (*sql.Stmt, error) {
-	return db.Conn.PrepareContext(ctx, query)
+	db.Pool.Close()
 }
 
 func (db *DB) Ping(ctx context.Context) error {
-	return db.Conn.PingContext(ctx)
+	return db.Pool.Ping(ctx)
 }
