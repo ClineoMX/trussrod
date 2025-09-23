@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 
+	"github.com/Domedik/trussrod/utils/encryption"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
 type KMS struct {
@@ -40,6 +42,27 @@ func (k *KMS) CreateDEK(ctx context.Context) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 	return out.Plaintext, out.CiphertextBlob, nil
+}
+
+func (k *KMS) Sign(ctx context.Context, cmkARN, message string) ([]byte, error) {
+	hash := encryption.GetSHA256(message)
+	input := &kms.SignInput{
+		KeyId:            aws.String(cmkARN),
+		Message:          hash,
+		MessageType:      types.MessageTypeDigest,
+		SigningAlgorithm: types.SigningAlgorithmSpecRsassaPssSha256,
+		// EncryptionContext: map[string]string{
+		//     "doctor_id": "id",
+		//     "note_id": "note-id",
+		// },
+	}
+
+	result, err := k.client.Sign(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Signature, nil
 }
 
 func NewKMSClient(key string) (*KMS, error) {
