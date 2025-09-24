@@ -6,12 +6,12 @@ import (
 
 type SignInput struct {
 	ARN     string
-	Message string
+	Message []byte
 }
 
 type VerifyInput struct {
 	ARN       string
-	Message   string
+	Message   []byte
 	Signature []byte
 }
 

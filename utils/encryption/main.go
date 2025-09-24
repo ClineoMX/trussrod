@@ -20,8 +20,8 @@ func GetSecretHash(username, secret string) string {
 	return secretHash
 }
 
-func GetSHA256(message string) []byte {
+func GetSHA256(message []byte) []byte {
 	w := sha256.New()
-	w.Write([]byte(message))
+	w.Write(message)
 	return w.Sum(nil)
 }
