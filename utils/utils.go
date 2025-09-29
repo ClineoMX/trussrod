@@ -1,21 +1,9 @@
 package utils
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"net/url"
 	"strconv"
 )
-
-func GetSecretHash(username, secret string) string {
-	data := username
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(data))
-	hash := h.Sum(nil)
-	secretHash := base64.StdEncoding.EncodeToString(hash)
-	return secretHash
-}
 
 func LimitAndOffset(query url.Values) (uint, uint) {
 	queryPage := query["page"]

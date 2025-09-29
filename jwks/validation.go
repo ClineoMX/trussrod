@@ -43,7 +43,6 @@ func (v *Validator) GrantAccess(tokenString string) (*AccessClaims, error) {
 		jwt.WithLeeway(v.leeway),
 	)
 	token, err := parser.ParseWithClaims(tokenString, claims, v.jwks.Keyfunc)
-
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +72,6 @@ func (v *Validator) GrantIdentity(tokenString string) (*IdentityClaims, error) {
 		jwt.WithLeeway(v.leeway),
 	)
 	token, err := parser.ParseWithClaims(tokenString, claims, v.jwks.Keyfunc)
-
 	if err != nil {
 		return nil, err
 	}

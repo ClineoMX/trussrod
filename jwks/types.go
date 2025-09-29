@@ -20,6 +20,7 @@ type IdentityClaims struct {
 	jwt.RegisteredClaims
 	TokenUse   string `json:"token_use"`
 	ClientId   string `json:"client_id,omitempty"`
+	CMKARN     string `json:"custom:CMK"`
 	Email      string `json:"email"`
 	Phone      string `json:"phone"`
 	IsVerified bool   `json:"email_verified"`
