@@ -45,7 +45,7 @@ type NoteInput struct {
 	CanonicalVersion string
 }
 
-func NewCanonicalNote(i *NoteInput) *CanonicalNote {
+func NewCanonicalNote(i *NoteInput) ([]byte, error) {
 	n := &CanonicalNote{
 		Metadata: Metadata{
 			CreatedAt:        time.Now(),
@@ -59,14 +59,5 @@ func NewCanonicalNote(i *NoteInput) *CanonicalNote {
 		},
 		Attachments: []Attachment{},
 	}
-	return n
-}
-
-func (n *CanonicalNote) Canonicalize() ([]byte, error) {
-	bytes, err := bson.Marshal(n)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
+	return bson.Marshal(n)
 }

@@ -24,7 +24,7 @@ type UploaderOptions struct {
 	Concurrency int
 }
 
-func (s *S3) Upload(ctx context.Context, key string, object io.Reader, options *UploaderOptions) error {
+func (s *S3) Upload(ctx context.Context, key string, object io.Reader, options *UploaderOptions) (string, error) {
 	var uploader *manager.Uploader
 	if options != nil {
 		uploader = manager.NewUploader(s.client, func(u *manager.Uploader) {
@@ -40,10 +40,10 @@ func (s *S3) Upload(ctx context.Context, key string, object io.Reader, options *
 		Body:   object,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return s.bucket, nil
 }
 
 func (s *S3) GetURL(ctx context.Context, key string) (string, error) {
@@ -53,7 +53,6 @@ func (s *S3) GetURL(ctx context.Context, key string) (string, error) {
 	}, func(opts *s3.PresignOptions) {
 		opts.Expires = 15 * time.Minute
 	})
-
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +70,6 @@ func NewS3(ctx context.Context, bucket, region string, grants *identity.Credenti
 			grants.SessionToken,
 		)),
 	)
-
 	if err != nil {
 		return nil, err
 	}

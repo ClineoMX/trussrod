@@ -62,6 +62,10 @@ type VectorConfig struct {
 	Port string `json:"VECTORS_PORT"`
 }
 
+type StorageConfig struct {
+	Bucket string
+}
+
 type DomedikConfig struct {
 	Cache    *CacheConfig
 	Cloud    *CloudConfig
@@ -71,6 +75,7 @@ type DomedikConfig struct {
 	Events   *EventsConfig
 	Vectors  *VectorConfig
 	Identity *IdentityConfig
+	Storage  *StorageConfig
 	BindPort string
 	ApiKey   string
 }
@@ -167,6 +172,13 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 		}
 	}
 
+	sconfig := StorageConfig{}
+	if slices.Contains(deps, "storage") {
+		if err := json.Unmarshal([]byte(secret), &sconfig); err != nil {
+			return nil, errors.New("failed to unmarshal id config")
+		}
+	}
+
 	return &DomedikConfig{
 		BindPort: port,
 		ApiKey:   apikey,
@@ -178,6 +190,7 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 		Vectors:  &vectorconf,
 		Crypto:   &encconf,
 		Identity: &idconf,
+		Storage:  &sconfig,
 	}, nil
 }
 
@@ -239,6 +252,11 @@ func getFromEnv(deps []string) *DomedikConfig {
 		idconf.IdentityPool = os.Getenv("IDENTITY_POOL")
 	}
 
+	sconf := StorageConfig{}
+	if slices.Contains(deps, "storage") {
+		sconf.Bucket = os.Getenv("STORAGE_BUCKET")
+	}
+
 	return &DomedikConfig{
 		ApiKey:   apikey,
 		BindPort: port,
@@ -250,6 +268,7 @@ func getFromEnv(deps []string) *DomedikConfig {
 		Vectors:  vectorconf,
 		Identity: &idconf,
 		Cloud:    &CloudConfig{Region: region},
+		Storage:  &sconf,
 	}
 }
 

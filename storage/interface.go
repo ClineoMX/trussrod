@@ -8,6 +8,6 @@ import (
 )
 
 type Storage interface {
-	Upload(context.Context, string, io.Reader, *UploaderOptions) error
+	Upload(context.Context, string, io.Reader, *UploaderOptions) (string, error)
 	GetURL(context.Context, string) (string, error)
 }
