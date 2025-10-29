@@ -46,12 +46,12 @@ func (s *S3) Upload(ctx context.Context, key string, object io.Reader, options *
 	return s.bucket, nil
 }
 
-func (s *S3) GetURL(ctx context.Context, key string) (string, error) {
+func (s *S3) GetURL(ctx context.Context, key string, ttl time.Duration) (string, error) {
 	request, err := s.presigner.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
 	}, func(opts *s3.PresignOptions) {
-		opts.Expires = 15 * time.Minute
+		opts.Expires = ttl
 	})
 	if err != nil {
 		return "", err

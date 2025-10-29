@@ -198,7 +198,7 @@ func getFromEnv(deps []string) *DomedikConfig {
 	port := os.Getenv("DOMEDIK_PORT")
 	region := os.Getenv("DOMEDIK_REGION")
 	// Remove after correct deployment
-	apikey := os.Getenv("API_KEY")
+	apikey := os.Getenv("DOMEDIK_API_KEY")
 
 	dbconf := &DatabaseConfig{}
 	if slices.Contains(deps, "database") {

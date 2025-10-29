@@ -2,7 +2,6 @@ package normalize
 
 import (
 	"errors"
-	"net/url"
 	"strings"
 	"time"
 
@@ -20,18 +19,6 @@ func String(s *string) *string {
 	c := cases.Title(language.Und)
 	result := c.String(normalized)
 	return &result
-}
-
-func APIAction(query url.Values) (string, error) {
-	queryAction := query["action"]
-	var action string
-	if len(queryAction) > 0 {
-		action = queryAction[0]
-	}
-	if action == "" {
-		return "", errors.New("no action")
-	}
-	return strings.ToUpper(action), nil
 }
 
 func Period(value string) (string, error) {

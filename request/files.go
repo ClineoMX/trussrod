@@ -34,8 +34,9 @@ func ingest(part *multipart.Part) (*storage.File, error) {
 		ID:      id.String(),
 		Content: buf.Bytes(),
 		Hash:    hasher.Sum(nil),
+		Name:    fileName,
 	}
-	return file.WithName(fileName), nil
+	return file, nil
 }
 
 func Files(r *http.Request) ([]*storage.File, error) {
@@ -67,7 +68,7 @@ func Files(r *http.Request) ([]*storage.File, error) {
 	}
 
 	if len(files) == 0 {
-		return files, errors.BadRequest()
+		return files, errors.BadRequest("no files sent")
 	}
 
 	return files, nil

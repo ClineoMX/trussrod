@@ -16,25 +16,24 @@ type File struct {
 	Hash     []byte
 	Bucket   string
 	MimeType string
-	name     string
+	Name     string
 }
 
-func (f *File) WithName(name string) *File {
-	f.name = name
-	return f
-}
-
-func (f *File) Name() string {
-	return f.name
-}
-
-func (f *File) GetKey(path string) string {
+// Key returns storage key of the current file, using root path
+// as parameter along a uuid generated to keep sensitive original
+// filenames encrypted and secure.
+func (f *File) Key(path string) string {
 	var ext string
-	parts := strings.Split(f.name, ".")
+	parts := strings.Split(f.Name, ".")
 	if len(parts) > 1 {
 		ext = parts[1]
 	}
 	return fmt.Sprintf("%s/%s.%s", path, f.ID, ext)
+}
+
+// Size returns file total size in bytes.
+func (f *File) Size() uint64 {
+	return uint64(len(f.Content))
 }
 
 func (f *File) SaveTo(ctx context.Context, s Storage, path string) error {
@@ -59,7 +58,7 @@ func (f *File) SaveTo(ctx context.Context, s Storage, path string) error {
 	}
 
 	contentReader := bytes.NewReader(f.Content)
-	bucket, err := s.Upload(uploadCtx, f.GetKey(path), contentReader, nil)
+	bucket, err := s.Upload(uploadCtx, f.Key(path), contentReader, nil)
 	if err != nil {
 		return err
 	}

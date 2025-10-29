@@ -25,3 +25,10 @@ func JSON(w http.ResponseWriter, status int, body any) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(body)
 }
+
+type Paginated[T any] struct {
+	Results []T `json:"results"`
+	Count   int `json:"count"`
+	Page    int `json:"page"`
+	Size    int `json:"size"`
+}

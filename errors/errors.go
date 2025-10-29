@@ -46,6 +46,14 @@ type AppError struct {
 
 // Error implements the error interface
 func (e *AppError) Error() string {
+	if e.Details != "" {
+		return fmt.Sprintf("%d: %s (details: %s)", e.HTTPStatus, e.Message, e.Details)
+	}
+	return fmt.Sprintf("%d: %s", e.HTTPStatus, e.Message)
+}
+
+// LogError returns string for logging
+func (e *AppError) LogError() string {
 	if e.OriginalErr != nil {
 		return fmt.Sprintf("%d: %s (original: %v)", e.HTTPStatus, e.Message, e.OriginalErr)
 	}
@@ -106,11 +114,15 @@ func Conflict() *AppError {
 	return err
 }
 
-func BadRequest() *AppError {
+func BadRequest(detail any) *AppError {
+	var dets string
+	dets, _ = detail.(string)
+
 	err := &AppError{
 		Type:       ErrorTypeBadRequest,
 		Message:    ErrMsgBadRequest,
 		HTTPStatus: http.StatusBadRequest,
+		Details:    dets,
 	}
 	return err
 }
@@ -121,6 +133,7 @@ func Internal(original error) *AppError {
 		Message:     ErrMsgInternalError,
 		HTTPStatus:  http.StatusInternalServerError,
 		OriginalErr: original,
+		Details:     ErrMsgInternalError,
 	}
 	return err
 }
@@ -133,16 +146,16 @@ func Wrap(err error) *AppError {
 
 	var jsonErr *json.SyntaxError
 	if errors.As(err, &jsonErr) {
-		return BadRequest()
+		return BadRequest("could not deserialize request body as json")
 	}
 
 	var pqErr *pq.Error
 	if errors.As(err, &pqErr) {
 		switch pqErr.Code {
-		case "23505":
+		case "23505": // Unique constraint violation
 			return Conflict()
-		case "23502":
-			return BadRequest()
+		case "23502": // Not null constraint violation
+			return BadRequest("seems like request body is not complete")
 		default:
 			return Internal(pqErr)
 		}
