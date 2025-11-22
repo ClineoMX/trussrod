@@ -2,18 +2,18 @@ package oauth
 
 import (
 	"context"
-
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
-	"github.com/golang-jwt/jwt/v5"
 )
 
+type LoginOutput struct {
+	Access   string `json:"access"`
+	Identity string `json:"id"`
+	Refresh  string `json:"refresh"`
+}
+
 type Client interface {
-	Login(ctx context.Context, username, password string) (*types.AuthenticationResultType, error)
-	RequestResetPassword(ctx context.Context, email string) (*cognitoidentityprovider.AdminResetUserPasswordOutput, error)
+	Login(ctx context.Context, username, password string) (*LoginOutput, error)
+	RequestResetPassword(ctx context.Context, email string) error
 	ConfirmResetPassword(ctx context.Context, email, code, newPassword string) error
 	ConfirmUserSignup(ctx context.Context, email, code string) error
-	ValidateToken(ctx context.Context, jwt string) (jwt.Claims, error)
-	Close() error
-	Ping(ctx context.Context) error
+	// CreateUser(ctx context.Context, username string) error
 }

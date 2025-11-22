@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"time"
 
@@ -13,44 +12,19 @@ import (
 	"github.com/Domedik/trussrod/settings"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	provider "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Cognito struct {
-	client *cognitoidentityprovider.Client
+	client *provider.Client
 	hash   func(username string) string
 	jwks   *jwks.JWKS
 	config *settings.OAuthConfig
 }
 
-func (c *Cognito) getUserByEmail(ctx context.Context, email string) (string, error) {
-	input := &cognitoidentityprovider.ListUsersInput{
-		UserPoolId: aws.String(c.config.UserPool),
-		Filter:     aws.String("email = \"" + email + "\""),
-	}
-
-	result, err := c.client.ListUsers(ctx, input)
-	if err != nil {
-		return "", err
-	}
-
-	if len(result.Users) == 0 {
-		return "", errors.New("no user found")
-	}
-
-	for _, attr := range result.Users[0].Attributes {
-		if *attr.Name == "sub" {
-			return *attr.Value, nil
-		}
-	}
-
-	return "", errors.New("no user found")
-}
-
-func (c *Cognito) Login(ctx context.Context, username, password string) (*types.AuthenticationResultType, error) {
-	params := &cognitoidentityprovider.AdminInitiateAuthInput{
+func (c *Cognito) Login(ctx context.Context, username, password string) (*LoginOutput, error) {
+	params := &provider.AdminInitiateAuthInput{
 		AuthFlow:   types.AuthFlowType(c.config.Flow),
 		ClientId:   aws.String(c.config.App),
 		UserPoolId: aws.String(c.config.UserPool),
@@ -64,79 +38,63 @@ func (c *Cognito) Login(ctx context.Context, username, password string) (*types.
 	if err != nil {
 		return nil, err
 	}
-	return result.AuthenticationResult, nil
+
+	return &LoginOutput{
+		Access:   *result.AuthenticationResult.AccessToken,
+		Identity: *result.AuthenticationResult.IdToken,
+		Refresh:  *result.AuthenticationResult.RefreshToken,
+	}, nil
 }
 
-func (c *Cognito) RequestResetPassword(ctx context.Context, email string) (*cognitoidentityprovider.AdminResetUserPasswordOutput, error) {
-	subs, err := c.getUserByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-
-	input := &cognitoidentityprovider.AdminResetUserPasswordInput{
+func (c *Cognito) RequestResetPassword(ctx context.Context, email string) error {
+	input := &provider.AdminResetUserPasswordInput{
 		UserPoolId: aws.String(c.config.UserPool),
-		Username:   aws.String(subs),
+		Username:   aws.String(email),
 	}
 
-	return c.client.AdminResetUserPassword(ctx, input)
+	_, err := c.client.AdminResetUserPassword(ctx, input)
+	return err
 }
 
 func (c *Cognito) ConfirmResetPassword(ctx context.Context, email, code, password string) error {
-	username, err := c.getUserByEmail(ctx, email)
-	if err != nil {
-		return err
-	}
-	hash := c.hash(username)
+	hash := c.hash(email)
 
-	input := &cognitoidentityprovider.ConfirmForgotPasswordInput{
+	input := &provider.ConfirmForgotPasswordInput{
 		ClientId:         aws.String(c.config.App),
-		Username:         aws.String(username),
+		Username:         aws.String(email),
 		ConfirmationCode: aws.String(code),
 		Password:         aws.String(password),
 		SecretHash:       aws.String(hash),
 	}
 
-	_, err = c.client.ConfirmForgotPassword(ctx, input)
+	_, err := c.client.ConfirmForgotPassword(ctx, input)
 	return err
 }
 
 func (c *Cognito) ConfirmUserSignup(ctx context.Context, email, code string) error {
-	username, err := c.getUserByEmail(ctx, email)
-	if err != nil {
-		return err
-	}
-	hash := c.hash(username)
+	hash := c.hash(email)
 
-	input := &cognitoidentityprovider.ConfirmSignUpInput{
+	input := &provider.ConfirmSignUpInput{
 		ClientId:         aws.String(c.config.App),
-		Username:         aws.String(username),
+		Username:         aws.String(email),
 		ConfirmationCode: aws.String(code),
 		SecretHash:       aws.String(hash),
 	}
 
-	_, err = c.client.ConfirmSignUp(ctx, input)
+	_, err := c.client.ConfirmSignUp(ctx, input)
 	return err
-}
-
-func (c *Cognito) ValidateToken(ctx context.Context, jwtString string) (jwt.Claims, error) {
-	token, err := jwt.Parse(jwtString, c.jwks.Keyfunc)
-	if token.Valid {
-		return token.Claims, nil
-	}
-	return nil, err
 }
 
 func NewCognitoClient(c *settings.DomedikConfig) (*Cognito, error) {
 	ctx := context.Background()
 	conf, err := config.LoadDefaultConfig(ctx, config.WithRegion(c.Cloud.Region))
-
 	if err != nil {
 		return nil, err
 	}
 	url := fmt.Sprintf("%s/.well-known/jwks.json", c.OAuth.Issuer)
 
 	return &Cognito{
-		client: cognitoidentityprovider.NewFromConfig(conf),
+		client: provider.NewFromConfig(conf),
 		hash: func(username string) string {
 			data := username + c.OAuth.App
 			h := hmac.New(sha256.New, []byte(c.OAuth.Secret))
