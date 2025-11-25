@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aws/smithy-go"
 	"github.com/lib/pq"
 )
 
@@ -142,6 +143,18 @@ func Internal(original error) *AppError {
 func Wrap(err error) *AppError {
 	if err == nil {
 		return nil
+	}
+
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		switch apiErr.ErrorCode() {
+		case "NotAuthorizedException":
+			return Unauthorized()
+		case "UserNotFoundException":
+			return NotFound()
+		case "UserNotConfirmedException":
+			return Forbidden()
+		}
 	}
 
 	var jsonErr *json.SyntaxError

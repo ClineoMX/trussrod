@@ -15,5 +15,6 @@ type Client interface {
 	RequestResetPassword(ctx context.Context, email string) error
 	ConfirmResetPassword(ctx context.Context, email, code, newPassword string) error
 	ConfirmUserSignup(ctx context.Context, email, code string) error
-	// CreateUser(ctx context.Context, username string) error
+	CreatePatientUser(ctx context.Context, username string, email, phone *string) error
+	// CreateUser(ctx context.Context, email, password string) error
 }

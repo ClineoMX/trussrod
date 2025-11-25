@@ -5,11 +5,17 @@ import (
 	"net/http"
 
 	"github.com/Domedik/trussrod/errors"
+	"github.com/Domedik/trussrod/logging"
 )
 
 func WithError(w http.ResponseWriter, err error) {
 	wrapped := errors.Wrap(err)
-	http.Error(w, wrapped.Error(), wrapped.HTTPStatus)
+	if writer, ok := w.(*logging.ResponseWriter); ok {
+		writer.Error = err
+		http.Error(writer, wrapped.Error(), wrapped.HTTPStatus)
+	} else {
+		http.Error(w, wrapped.Error(), wrapped.HTTPStatus)
+	}
 }
 
 func WithHeader(w http.ResponseWriter, key, value string) {

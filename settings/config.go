@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -67,17 +68,19 @@ type StorageConfig struct {
 }
 
 type DomedikConfig struct {
-	Cache    *CacheConfig
-	Cloud    *CloudConfig
-	Crypto   *EncryptionConfig
-	DB       *DatabaseConfig
-	OAuth    *OAuthConfig
-	Events   *EventsConfig
-	Vectors  *VectorConfig
-	Identity *IdentityConfig
-	Storage  *StorageConfig
-	BindPort string
-	ApiKey   string
+	Cache       *CacheConfig
+	Cloud       *CloudConfig
+	Crypto      *EncryptionConfig
+	DB          *DatabaseConfig
+	OAuth       *OAuthConfig
+	Events      *EventsConfig
+	Vectors     *VectorConfig
+	Identity    *IdentityConfig
+	Storage     *StorageConfig
+	BindPort    string
+	ApiKey      string
+	Environment string
+	LogLevel    string
 }
 
 func getFromProvider(deps []string) (*DomedikConfig, error) {
@@ -88,6 +91,18 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 
 	// Remove after correct deployment
 	apikey := os.Getenv("API_KEY")
+	var environment string
+	if value := os.Getenv("DOMEDIK_ENV"); value != "" {
+		environment = strings.ToLower(value)
+	} else {
+		environment = "development"
+	}
+	var loglevel string
+	if value := os.Getenv("DOMEDIK_LOGLEVEL"); value != "" {
+		loglevel = strings.ToLower(value)
+	} else {
+		loglevel = "debug"
+	}
 
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
@@ -180,17 +195,19 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 	}
 
 	return &DomedikConfig{
-		BindPort: port,
-		ApiKey:   apikey,
-		Cloud:    &CloudConfig{Region: region},
-		DB:       &dbconf,
-		Cache:    &cacheconf,
-		OAuth:    &oauthconf,
-		Events:   &eventsconf,
-		Vectors:  &vectorconf,
-		Crypto:   &encconf,
-		Identity: &idconf,
-		Storage:  &sconfig,
+		BindPort:    port,
+		ApiKey:      apikey,
+		Environment: environment,
+		LogLevel:    loglevel,
+		Cloud:       &CloudConfig{Region: region},
+		DB:          &dbconf,
+		Cache:       &cacheconf,
+		OAuth:       &oauthconf,
+		Events:      &eventsconf,
+		Vectors:     &vectorconf,
+		Crypto:      &encconf,
+		Identity:    &idconf,
+		Storage:     &sconfig,
 	}, nil
 }
 
@@ -199,6 +216,18 @@ func getFromEnv(deps []string) *DomedikConfig {
 	region := os.Getenv("DOMEDIK_REGION")
 	// Remove after correct deployment
 	apikey := os.Getenv("DOMEDIK_API_KEY")
+	var environment string
+	if value := os.Getenv("DOMEDIK_ENV"); value != "" {
+		environment = strings.ToLower(value)
+	} else {
+		environment = "development"
+	}
+	var loglevel string
+	if value := os.Getenv("DOMEDIK_LOGLEVEL"); value != "" {
+		loglevel = strings.ToLower(value)
+	} else {
+		loglevel = "debug"
+	}
 
 	dbconf := &DatabaseConfig{}
 	if slices.Contains(deps, "database") {
@@ -258,17 +287,19 @@ func getFromEnv(deps []string) *DomedikConfig {
 	}
 
 	return &DomedikConfig{
-		ApiKey:   apikey,
-		BindPort: port,
-		DB:       dbconf,
-		Cache:    cacheconf,
-		OAuth:    oauthconf,
-		Crypto:   encconf,
-		Events:   eventsconf,
-		Vectors:  vectorconf,
-		Identity: &idconf,
-		Cloud:    &CloudConfig{Region: region},
-		Storage:  &sconf,
+		ApiKey:      apikey,
+		BindPort:    port,
+		Environment: environment,
+		LogLevel:    loglevel,
+		DB:          dbconf,
+		Cache:       cacheconf,
+		OAuth:       oauthconf,
+		Crypto:      encconf,
+		Events:      eventsconf,
+		Vectors:     vectorconf,
+		Identity:    &idconf,
+		Cloud:       &CloudConfig{Region: region},
+		Storage:     &sconf,
 	}
 }
 

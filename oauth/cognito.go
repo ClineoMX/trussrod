@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -108,10 +109,26 @@ func NewCognitoClient(c *settings.DomedikConfig) (*Cognito, error) {
 	}, nil
 }
 
-func (*Cognito) Close() error {
-	return nil
-}
+func (c *Cognito) CreatePatientUser(ctx context.Context, username string, email, phone *string) error {
+	if email == nil && phone == nil {
+		return errors.New("at least one contact method is required")
+	}
 
-func (c *Cognito) Ping(ctx context.Context) error {
-	return nil
+	var attrs = []types.AttributeType{}
+	if email != nil {
+		attrs = append(attrs, types.AttributeType{Name: aws.String("email"), Value: aws.String(*email)})
+	}
+	if phone != nil {
+		attrs = append(attrs, types.AttributeType{Name: aws.String("phone"), Value: aws.String(*phone)})
+	}
+
+	input := provider.AdminCreateUserInput{
+		UserPoolId:     aws.String("mx-central-1_8PS5MGuUW"),
+		Username:       aws.String(username),
+		UserAttributes: attrs,
+	}
+
+	_, err := c.client.AdminCreateUser(ctx, &input)
+
+	return err
 }

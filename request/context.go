@@ -30,6 +30,7 @@ const (
 	DomedikDek         key = "DOMEDIK_DEK"
 	DomedikCredentials key = "DOMEDIK_CREDENTIALS"
 	DomedikSigner      key = "DOMEDIK_SIGNER"
+	DomedikTraceID     key = "DOMEDIK_TRACE_ID"
 )
 
 const (
@@ -69,6 +70,11 @@ func GetCredentials(r *http.Request) (*identity.Credentials, bool) {
 func GetSigner(r *http.Request) (keys.Signer, bool) {
 	s, ok := r.Context().Value(DomedikSigner).(keys.Signer)
 	return s, ok
+}
+
+func GetTraceID(r *http.Request) (string, bool) {
+	id, ok := r.Context().Value(DomedikTraceID).(string)
+	return id, ok
 }
 
 func MustGetDek(r *http.Request) []byte {
@@ -119,6 +125,14 @@ func MustGetSigner(r *http.Request) keys.Signer {
 	return s
 }
 
+func MustGetTraceID(r *http.Request) string {
+	id, ok := GetTraceID(r)
+	if !ok {
+		panic("could not request ID from context")
+	}
+	return id
+}
+
 func GetDek(r *http.Request) ([]byte, bool) {
 	key, ok := r.Context().Value(DomedikDek).([]byte)
 	return key, ok
@@ -157,6 +171,12 @@ func WithCredentials(r *http.Request, creds *identity.Credentials) *http.Request
 func WithSigner(r *http.Request, s keys.Signer) *http.Request {
 	parent := r.Context()
 	ctx := context.WithValue(parent, DomedikSigner, s)
+	return r.WithContext(ctx)
+}
+
+func WithTraceID(r *http.Request, rid string) *http.Request {
+	parent := r.Context()
+	ctx := context.WithValue(parent, DomedikTraceID, rid)
 	return r.WithContext(ctx)
 }
 
