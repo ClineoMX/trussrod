@@ -2,6 +2,7 @@ package logging
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -170,9 +171,8 @@ func (l *Logger) WarnFields(msg string, fields map[string]any) {
 }
 
 // Error logs an error message
-func (l *Logger) Error(err error) {
-	msg := err.Error()
-	l.log(ErrorLevel, msg, nil)
+func (l *Logger) Error(message string, err error) {
+	l.log(ErrorLevel, message, map[string]any{"reason": err.Error()})
 }
 
 // ErrorFields logs error with structured fields
@@ -208,9 +208,12 @@ func (l *Logger) WithContext(fields map[string]any) *Logger {
 	defer l.mu.Unlock()
 
 	newContext := make(map[string]any)
-	for k, v := range l.context {
-		newContext[k] = v
+	if l.context != nil {
+		for k, v := range l.context {
+			newContext[k] = v
+		}
 	}
+
 	for k, v := range fields {
 		newContext[k] = v
 	}
@@ -228,6 +231,13 @@ func (l *Logger) WithContext(fields map[string]any) *Logger {
 func (l *Logger) WithTraceID(traceID string) *Logger {
 	return l.WithContext(map[string]any{
 		"trace_id": traceID,
+	})
+}
+
+// WithPatientID returns a logger with request_id
+func (l *Logger) WithPatientID(patientID string) *Logger {
+	return l.WithContext(map[string]any{
+		"patient_id": patientID,
 	})
 }
 
@@ -282,4 +292,14 @@ func (rw *ResponseWriter) WriteHeader(statusCode int) {
 func (rw *ResponseWriter) Write(b []byte) (int, error) {
 	rw.Body.Write(b)
 	return rw.ResponseWriter.Write(b)
+}
+
+const RequestLogger string = "DOMEDIK_REQUEST_LOGGER"
+
+func FromContext(ctx context.Context) *Logger {
+	log, ok := ctx.Value(RequestLogger).(*Logger)
+	if !ok {
+		return New(Config{})
+	}
+	return log
 }

@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -89,16 +90,28 @@ func get() *validator.Validate {
 }
 
 func ValidatePayload(obj any) error {
-	err := get().Struct(obj)
+	val := reflect.ValueOf(obj)
+
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return errors.BadRequest("cannot validate nil pointer")
+		}
+		val = val.Elem()
+	}
+
+	// Intentar validar
+	toValidate := val.Interface()
+
+	err := get().Struct(toValidate)
 	var v []string
 
 	if err != nil {
+		fmt.Printf("DEBUG: validation error: %v\n", err)
 		for _, err := range err.(validator.ValidationErrors) {
-			msg := fmt.Sprintf("Field %s failed on the '%s' tag\n", err.Field(), err.Tag())
+			msg := fmt.Sprintf("Field %s failed on the '%s' tag", err.Field(), err.Tag())
 			v = append(v, msg)
 		}
 		return errors.ValidationFailed(strings.Join(v, ","))
 	}
-
 	return nil
 }

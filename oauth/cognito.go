@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"time"
 
@@ -109,26 +108,35 @@ func NewCognitoClient(c *settings.DomedikConfig) (*Cognito, error) {
 	}, nil
 }
 
-func (c *Cognito) CreatePatientUser(ctx context.Context, username string, email, phone *string) error {
-	if email == nil && phone == nil {
-		return errors.New("at least one contact method is required")
-	}
-
-	var attrs = []types.AttributeType{}
-	if email != nil {
-		attrs = append(attrs, types.AttributeType{Name: aws.String("email"), Value: aws.String(*email)})
-	}
-	if phone != nil {
-		attrs = append(attrs, types.AttributeType{Name: aws.String("phone"), Value: aws.String(*phone)})
-	}
-
+func (c *Cognito) CreatePatientUser(ctx context.Context, username string, phone string) error {
 	input := provider.AdminCreateUserInput{
-		UserPoolId:     aws.String("mx-central-1_8PS5MGuUW"),
-		Username:       aws.String(username),
-		UserAttributes: attrs,
+		UserPoolId: aws.String(c.config.PatientsUserPool),
+		Username:   aws.String(username),
+		UserAttributes: []types.AttributeType{
+			{
+				Name:  aws.String("phone_number"),
+				Value: aws.String(phone),
+			},
+			{
+				Name:  aws.String("phone_number_verified"),
+				Value: aws.String("true"),
+			},
+		},
+		MessageAction: types.MessageActionTypeSuppress,
 	}
 
 	_, err := c.client.AdminCreateUser(ctx, &input)
+
+	return err
+}
+
+func (c *Cognito) DeletePatientUser(ctx context.Context, username string) error {
+	input := provider.AdminDeleteUserInput{
+		UserPoolId: aws.String(c.config.PatientsUserPool),
+		Username:   aws.String(username),
+	}
+
+	_, err := c.client.AdminDeleteUser(ctx, &input)
 
 	return err
 }

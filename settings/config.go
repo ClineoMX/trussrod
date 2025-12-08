@@ -34,11 +34,12 @@ type CacheConfig struct {
 }
 
 type OAuthConfig struct {
-	App      string `json:"OAUTH_APP_ID"`
-	Flow     string `json:"OAUTH_AUTH_FLOW"`
-	Issuer   string `json:"OAUTH_ISSUER"`
-	Secret   string `json:"OAUTH_SECRET_ID"`
-	UserPool string `json:"OAUTH_USER_POOL"`
+	App              string `json:"OAUTH_APP_ID"`
+	Flow             string `json:"OAUTH_AUTH_FLOW"`
+	Issuer           string `json:"OAUTH_ISSUER"`
+	Secret           string `json:"OAUTH_SECRET_ID"`
+	UserPool         string `json:"OAUTH_USER_POOL"`
+	PatientsUserPool string `json:"OAUTH_PATIENTS_USER_POOL"`
 }
 
 type CloudConfig struct {
@@ -257,6 +258,7 @@ func getFromEnv(deps []string) *DomedikConfig {
 		oauthconf.Issuer = os.Getenv("OAUTH_ISSUER")
 		oauthconf.Secret = os.Getenv("OAUTH_SECRET_ID")
 		oauthconf.UserPool = os.Getenv("OAUTH_USER_POOL")
+		oauthconf.PatientsUserPool = os.Getenv("OAUTH_PATIENTS_USER_POOL")
 	}
 
 	encconf := &EncryptionConfig{}

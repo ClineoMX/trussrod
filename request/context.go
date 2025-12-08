@@ -9,6 +9,7 @@ import (
 
 	"github.com/Domedik/trussrod/identity"
 	"github.com/Domedik/trussrod/keys"
+	"github.com/Domedik/trussrod/logging"
 )
 
 type key string
@@ -24,13 +25,14 @@ type User struct {
 }
 
 const (
-	DomedikUser        key = "DOMEDIK_SESSION"
-	DomedikIdentity    key = "DOMEDIK_IDENTITY"
-	DomedikPatient     key = "DOMEDIK_PATIENT"
-	DomedikDek         key = "DOMEDIK_DEK"
-	DomedikCredentials key = "DOMEDIK_CREDENTIALS"
-	DomedikSigner      key = "DOMEDIK_SIGNER"
-	DomedikTraceID     key = "DOMEDIK_TRACE_ID"
+	DomedikUser          key = "DOMEDIK_SESSION"
+	DomedikIdentity      key = "DOMEDIK_IDENTITY"
+	DomedikPatient       key = "DOMEDIK_PATIENT"
+	DomedikDek           key = "DOMEDIK_DEK"
+	DomedikCredentials   key = "DOMEDIK_CREDENTIALS"
+	DomedikSigner        key = "DOMEDIK_SIGNER"
+	DomedikTraceID       key = "DOMEDIK_TRACE_ID"
+	DomedikRequestLogger key = "DOMEDIK_REQUEST_LOGGER"
 )
 
 const (
@@ -75,6 +77,11 @@ func GetSigner(r *http.Request) (keys.Signer, bool) {
 func GetTraceID(r *http.Request) (string, bool) {
 	id, ok := r.Context().Value(DomedikTraceID).(string)
 	return id, ok
+}
+
+func GetRequestLogger(r *http.Request) (*logging.Logger, bool) {
+	log, ok := r.Context().Value("DOMEDIK_REQUEST_LOGGER").(*logging.Logger)
+	return log, ok
 }
 
 func MustGetDek(r *http.Request) []byte {
@@ -128,9 +135,17 @@ func MustGetSigner(r *http.Request) keys.Signer {
 func MustGetTraceID(r *http.Request) string {
 	id, ok := GetTraceID(r)
 	if !ok {
-		panic("could not request ID from context")
+		panic("could not get request ID from context")
 	}
 	return id
+}
+
+func MustGetRequestLogger(r *http.Request) *logging.Logger {
+	log, ok := GetRequestLogger(r)
+	if !ok {
+		panic("could not get request logger from context")
+	}
+	return log
 }
 
 func GetDek(r *http.Request) ([]byte, bool) {
@@ -177,6 +192,12 @@ func WithSigner(r *http.Request, s keys.Signer) *http.Request {
 func WithTraceID(r *http.Request, rid string) *http.Request {
 	parent := r.Context()
 	ctx := context.WithValue(parent, DomedikTraceID, rid)
+	return r.WithContext(ctx)
+}
+
+func WithLogger(r *http.Request, logger *logging.Logger) *http.Request {
+	parent := r.Context()
+	ctx := context.WithValue(parent, logging.RequestLogger, logger)
 	return r.WithContext(ctx)
 }
 

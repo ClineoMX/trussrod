@@ -13,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.3
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.5
+	github.com/aws/smithy-go v1.23.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
@@ -21,7 +22,6 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/phonenumbers v1.6.5
 	github.com/redis/go-redis/v9 v9.13.0
-	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/text v0.29.0
 )
 
@@ -39,7 +39,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.29.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6 // indirect
-	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect

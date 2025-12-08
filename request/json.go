@@ -24,7 +24,7 @@ func JSON[T any](r *http.Request) (T, error) {
 		return zero, err
 	}
 
-	if err := validation.ValidatePayload(v); err != nil {
+	if err := validation.ValidatePayload(&v); err != nil {
 		return zero, err
 	}
 

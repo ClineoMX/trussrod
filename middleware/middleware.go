@@ -105,10 +105,6 @@ func Logging(logger *logging.Logger) Middleware {
 
 			next.ServeHTTP(wrapped, r)
 
-			if wrapped.Error != nil {
-				reqLogger.Error(wrapped.Error)
-			}
-
 			duration := time.Since(start)
 			fields := map[string]any{
 				"remote_addr":    r.RemoteAddr,
