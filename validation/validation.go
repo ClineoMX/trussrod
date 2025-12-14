@@ -106,7 +106,6 @@ func ValidatePayload(obj any) error {
 	var v []string
 
 	if err != nil {
-		fmt.Printf("DEBUG: validation error: %v\n", err)
 		for _, err := range err.(validator.ValidationErrors) {
 			msg := fmt.Sprintf("Field %s failed on the '%s' tag", err.Field(), err.Tag())
 			v = append(v, msg)
