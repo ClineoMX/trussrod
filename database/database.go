@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Domedik/trussrod/settings"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -91,4 +92,13 @@ func (db *Postgres) Close() {
 
 func (db *Postgres) Ping(ctx context.Context) error {
 	return db.Pool.Ping(ctx)
+}
+
+func (db *Postgres) BeginTx(ctx context.Context, opts any) (Tx, error) {
+	options, ok := opts.(pgx.TxOptions)
+	if !ok {
+		return nil, fmt.Errorf("invalid transaction options")
+	}
+
+	return db.Pool.BeginTx(ctx, options)
 }

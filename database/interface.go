@@ -17,6 +17,14 @@ type Rows interface {
 	Err() error
 }
 
+// Tx is an interface for a database transaction.
+type Tx interface {
+	// Commit commits the transaction.
+	Commit(ctx context.Context) error
+	// Rollback rolls back the transaction.
+	Rollback(ctx context.Context) error
+}
+
 // Row is an interface for scanning a single query result row.
 type Row interface {
 	// Scan copies the columns from the row into dest.
@@ -40,4 +48,7 @@ type DB interface {
 
 	// Exec executes a query that doesn't return rows.
 	Exec(ctx context.Context, sql string, args ...any) (Result, error)
+
+	// BeginTx begins a new transaction.
+	BeginTx(ctx context.Context, opts any) (Tx, error)
 }
