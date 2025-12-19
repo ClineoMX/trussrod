@@ -23,6 +23,14 @@ type Tx interface {
 	Commit(ctx context.Context) error
 	// Rollback rolls back the transaction.
 	Rollback(ctx context.Context) error
+	// Query executes a query that returns rows.
+	Query(ctx context.Context, sql string, args ...any) (Rows, error)
+
+	// QueryRow executes a query that returns a single row.
+	QueryRow(ctx context.Context, sql string, args ...any) Row
+
+	// Exec executes a query that doesn't return rows.
+	Exec(ctx context.Context, sql string, args ...any) (Result, error)
 }
 
 // Row is an interface for scanning a single query result row.
