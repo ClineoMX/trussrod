@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/Domedik/trussrod/settings"
@@ -51,8 +52,16 @@ func NewPostgres(c *settings.DatabaseConfig) (*Postgres, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.MinConns = 2
-	cfg.MaxConns = 20
+	cfg.MinConns = 0
+	if c.MaxConns > 0 {
+		cfg.MaxConns = int32(c.MaxConns)
+	} else {
+		if os.Getenv("IS_ASYNC") != "" {
+			cfg.MaxConns = 2
+		} else {
+			cfg.MaxConns = 20
+		}
+	}
 	cfg.MaxConnLifetime = 10 * time.Minute
 	cfg.MaxConnIdleTime = 20 * time.Minute
 	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)

@@ -31,7 +31,7 @@ func (s *SQS) Close() error {
 	return nil
 }
 
-func (s *SQS) Push(ctx context.Context, message *Message) error {
+func (s *SQS) Publish(ctx context.Context, message map[string]any) error {
 	marshalled, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -40,6 +40,5 @@ func (s *SQS) Push(ctx context.Context, message *Message) error {
 		QueueUrl:    &s.URN,
 		MessageBody: aws.String(string(marshalled)),
 	})
-
 	return err
 }

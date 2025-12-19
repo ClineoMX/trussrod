@@ -23,37 +23,6 @@ type MessageParams struct {
 }
 
 type EventQueue interface {
-	Push(ctx context.Context, message *Message) error
+	Publish(context.Context, map[string]any) error
 	Close() error
-}
-
-type option func(*Message)
-
-func WithTopic(t Topic) option {
-	return func(m *Message) {
-		m.Topic = t
-	}
-}
-
-func WithUser(id string) option {
-	return func(m *Message) {
-		m.Metadata.UserId = id
-	}
-}
-
-func WithTarget(id string) option {
-	return func(m *Message) {
-		m.Metadata.ObjectId = id
-	}
-}
-
-func NewMessage(opts ...option) *Message {
-	m := &Message{
-		Metadata: &Metadata{},
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-
-	return m
 }

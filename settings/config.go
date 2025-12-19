@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -23,6 +24,7 @@ type DatabaseConfig struct {
 	User       string `json:"DB_USER"`
 	Password   string `json:"DB_PASSWORD"`
 	SearchPath string `json:"DB_SEARCHPATH"`
+	MaxConns   int    `json:"DB_MAX_CONNS"`
 }
 
 type CacheConfig struct {
@@ -231,6 +233,8 @@ func getFromEnv(deps []string) *DomedikConfig {
 	}
 
 	dbconf := &DatabaseConfig{}
+
+	maxConns, _ := strconv.Atoi(os.Getenv("DB_MAX_CONNS"))
 	if slices.Contains(deps, "database") {
 		dbconf.Driver = "postgres"
 		dbconf.Host = os.Getenv("DB_HOST")
@@ -239,6 +243,7 @@ func getFromEnv(deps []string) *DomedikConfig {
 		dbconf.User = os.Getenv("DB_USER")
 		dbconf.Password = os.Getenv("DB_PASSWORD")
 		dbconf.SearchPath = os.Getenv("DB_SEARCHPATH")
+		dbconf.MaxConns = maxConns
 		dbconf.SSLMode = "disable"
 	}
 
