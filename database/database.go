@@ -120,6 +120,15 @@ func (db *Postgres) Ping(ctx context.Context) error {
 }
 
 func (db *Postgres) BeginTx(ctx context.Context, opts any) (Tx, error) {
+
+	if opts == nil {
+		tx, err := db.Pool.BeginTx(ctx, pgx.TxOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return &pgxTxWrapper{tx: tx}, nil
+	}
+
 	options, ok := opts.(pgx.TxOptions)
 	if !ok {
 		return nil, fmt.Errorf("invalid transaction options")
