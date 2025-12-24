@@ -47,6 +47,7 @@ const (
 	AttachedTo QueryParam = "attached_to"
 	Attachment QueryParam = "attachment"
 	Email      QueryParam = "email"
+	SaveAnyway QueryParam = "save_anyway"
 )
 
 func GetIdentity(r *http.Request) (string, bool) {

@@ -61,11 +61,6 @@ type IdentityConfig struct {
 	IdentityPool string `json:"IDENTITY_POOL"`
 }
 
-type VectorConfig struct {
-	Host string `json:"VECTORS_HOST"`
-	Port string `json:"VECTORS_PORT"`
-}
-
 type StorageConfig struct {
 	Bucket string
 }
@@ -77,7 +72,6 @@ type DomedikConfig struct {
 	DB          *DatabaseConfig
 	OAuth       *OAuthConfig
 	Events      *EventsConfig
-	Vectors     *VectorConfig
 	Identity    *IdentityConfig
 	Storage     *StorageConfig
 	BindPort    string
@@ -175,14 +169,6 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 		}
 	}
 
-	// Unmarshaling vector config
-	vectorconf := VectorConfig{}
-	if slices.Contains(deps, "vectors") {
-		if err := json.Unmarshal([]byte(secret), &vectorconf); err != nil {
-			return nil, errors.New("failed to unmarshal vector config")
-		}
-	}
-
 	idconf := IdentityConfig{}
 	if slices.Contains(deps, "identity") {
 		if err := json.Unmarshal([]byte(secret), &idconf); err != nil {
@@ -207,7 +193,6 @@ func getFromProvider(deps []string) (*DomedikConfig, error) {
 		Cache:       &cacheconf,
 		OAuth:       &oauthconf,
 		Events:      &eventsconf,
-		Vectors:     &vectorconf,
 		Crypto:      &encconf,
 		Identity:    &idconf,
 		Storage:     &sconfig,
@@ -279,12 +264,6 @@ func getFromEnv(deps []string) *DomedikConfig {
 		eventsconf.QueueURL = os.Getenv("QUEUE_URL")
 	}
 
-	vectorconf := &VectorConfig{}
-	if slices.Contains(deps, "events") {
-		vectorconf.Host = os.Getenv("VECTORS_HOST")
-		vectorconf.Port = os.Getenv("VECTORS_PORT")
-	}
-
 	idconf := IdentityConfig{}
 	if slices.Contains(deps, "identity") {
 		idconf.UserPool = os.Getenv("USER_POOL")
@@ -306,7 +285,6 @@ func getFromEnv(deps []string) *DomedikConfig {
 		OAuth:       oauthconf,
 		Crypto:      encconf,
 		Events:      eventsconf,
-		Vectors:     vectorconf,
 		Identity:    &idconf,
 		Cloud:       &CloudConfig{Region: region},
 		Storage:     &sconf,
