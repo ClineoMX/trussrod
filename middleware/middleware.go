@@ -26,7 +26,7 @@ func HasApiKey(key string) Middleware {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			h, ok := request.GetHeader(r, request.ApiKeyHeader)
 			if !ok || h != key {
-				response.WithError(w, r, apperr.Unauthorized())
+				response.WithError(w, apperr.Unauthorized())
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -77,7 +77,7 @@ func Recovery(logger *logging.Logger) Middleware {
 						0,
 						fields,
 					)
-					response.WithError(w, r, apperr.Internal(nil))
+					response.WithError(w, apperr.Internal(nil))
 				}
 			}()
 
