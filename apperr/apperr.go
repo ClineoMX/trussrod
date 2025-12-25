@@ -34,15 +34,15 @@ const (
 
 // AppError represents a structured application error
 type AppError struct {
-	Code        string         `json:"code"`
-	Message     string         `json:"message"`
-	Details     string         `json:"details,omitempty"`
-	Fields      map[string]any `json:"fields,omitempty"`
-	Data        []byte         `json:"data,omitempty"`
-	TraceID     string         `json:"trace_id,omitempty"`
-	Timestamp   time.Time      `json:"timestamp"`
-	HTTPStatus  int            `json:"-"`
-	OriginalErr error          `json:"-"`
+	Code        string          `json:"code"`
+	Message     string          `json:"message"`
+	Details     string          `json:"details,omitempty"`
+	Fields      map[string]any  `json:"fields,omitempty"`
+	Data        json.RawMessage `json:"data,omitempty"`
+	TraceID     string          `json:"trace_id,omitempty"`
+	Timestamp   time.Time       `json:"timestamp"`
+	HTTPStatus  int             `json:"-"`
+	OriginalErr error           `json:"-"`
 }
 
 // Error implements the error interface
@@ -229,7 +229,7 @@ func ConflictWithFields(msg string, fields any) *AppError {
 		Code:       "RESOURCE_CONFLICT",
 		Message:    msg,
 		HTTPStatus: http.StatusConflict,
-		Data:       data,
+		Data:       json.RawMessage(data),
 		Timestamp:  time.Now().UTC(),
 	}
 }
