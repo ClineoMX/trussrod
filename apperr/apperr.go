@@ -20,19 +20,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// ErrorType represents the category of error
-type ErrorType string
-
-const (
-	ErrorTypeValidation   ErrorType = "VALIDATION_ERROR"
-	ErrorTypeNotFound     ErrorType = "NOT_FOUND"
-	ErrorTypeUnauthorized ErrorType = "UNAUTHORIZED"
-	ErrorTypeForbidden    ErrorType = "FORBIDDEN"
-	ErrorTypeConflict     ErrorType = "CONFLICT"
-	ErrorTypeInternal     ErrorType = "INTERNAL_ERROR"
-	ErrorTypeBadRequest   ErrorType = "BAD_REQUEST"
-)
-
 // Common error messages
 const (
 	ErrMsgInvalidPayload   = "The request payload is invalid"
@@ -47,8 +34,7 @@ const (
 
 // AppError represents a structured application error
 type AppError struct {
-	Type        ErrorType      `json:"type"`
-	Code        string         `json:"code,omitempty"`
+	Code        string         `json:"code"`
 	Message     string         `json:"message"`
 	Details     string         `json:"details,omitempty"`
 	Fields      map[string]any `json:"fields,omitempty"`
@@ -61,9 +47,8 @@ type AppError struct {
 // Error implements the error interface
 func (e *AppError) Error() string {
 	var parts []string
-	parts = append(parts, fmt.Sprintf("[%s]", e.Type))
 	if e.Code != "" {
-		parts = append(parts, fmt.Sprintf("code:%s", e.Code))
+		parts = append(parts, fmt.Sprintf("[%s]", e.Code))
 	}
 	parts = append(parts, e.Message)
 	if e.Details != "" {
@@ -91,7 +76,7 @@ func (e *AppError) MarshalJSON() ([]byte, error) {
 // LogError returns string for logging with additional context
 func (e *AppError) LogError() string {
 	var parts []string
-	parts = append(parts, fmt.Sprintf("[%s] %d: %s", e.Type, e.HTTPStatus, e.Message))
+	parts = append(parts, fmt.Sprintf("[%s] %d: %s", e.Code, e.HTTPStatus, e.Message))
 
 	if e.Details != "" {
 		parts = append(parts, fmt.Sprintf("details: %s", e.Details))
@@ -113,7 +98,6 @@ func (e *AppError) Unwrap() error {
 // details should contain field-specific validation errors
 func ValidationFailed(details string) *AppError {
 	return &AppError{
-		Type:       ErrorTypeValidation,
 		Code:       "VALIDATION_FAILED",
 		Message:    ErrMsgInvalidPayload,
 		HTTPStatus: http.StatusBadRequest,
@@ -135,7 +119,6 @@ func ValidationFailedWithFields(fieldErrors map[string]string) *AppError {
 	}
 
 	return &AppError{
-		Type:       ErrorTypeValidation,
 		Code:       "VALIDATION_FAILED",
 		Message:    ErrMsgInvalidPayload,
 		HTTPStatus: http.StatusBadRequest,
@@ -148,7 +131,6 @@ func ValidationFailedWithFields(fieldErrors map[string]string) *AppError {
 // NotFound creates a not found error
 func NotFound() *AppError {
 	return &AppError{
-		Type:       ErrorTypeNotFound,
 		Code:       "RESOURCE_NOT_FOUND",
 		Message:    ErrMsgResourceNotFound,
 		HTTPStatus: http.StatusNotFound,
@@ -159,7 +141,6 @@ func NotFound() *AppError {
 // NotFoundWithResource creates a not found error with resource context
 func NotFoundWithResource(resourceType, resourceID string) *AppError {
 	return &AppError{
-		Type:       ErrorTypeNotFound,
 		Code:       "RESOURCE_NOT_FOUND",
 		Message:    fmt.Sprintf("The %s with identifier '%s' does not exist", resourceType, resourceID),
 		HTTPStatus: http.StatusNotFound,
@@ -174,7 +155,6 @@ func NotFoundWithResource(resourceType, resourceID string) *AppError {
 // Unauthorized creates an unauthorized error
 func Unauthorized() *AppError {
 	return &AppError{
-		Type:       ErrorTypeUnauthorized,
 		Code:       "UNAUTHORIZED",
 		Message:    ErrMsgUnauthorized,
 		HTTPStatus: http.StatusUnauthorized,
@@ -185,7 +165,6 @@ func Unauthorized() *AppError {
 // UnauthorizedWithReason creates an unauthorized error with a specific reason
 func UnauthorizedWithReason(reason string) *AppError {
 	return &AppError{
-		Type:       ErrorTypeUnauthorized,
 		Code:       "UNAUTHORIZED",
 		Message:    ErrMsgUnauthorized,
 		Details:    reason,
@@ -197,7 +176,6 @@ func UnauthorizedWithReason(reason string) *AppError {
 // Forbidden creates a forbidden error
 func Forbidden() *AppError {
 	return &AppError{
-		Type:       ErrorTypeForbidden,
 		Code:       "FORBIDDEN",
 		Message:    ErrMsgForbidden,
 		HTTPStatus: http.StatusForbidden,
@@ -208,7 +186,6 @@ func Forbidden() *AppError {
 // ForbiddenWithReason creates a forbidden error with a specific reason
 func ForbiddenWithReason(reason string) *AppError {
 	return &AppError{
-		Type:       ErrorTypeForbidden,
 		Code:       "FORBIDDEN",
 		Message:    ErrMsgForbidden,
 		Details:    reason,
@@ -220,7 +197,6 @@ func ForbiddenWithReason(reason string) *AppError {
 // Conflict creates a conflict error
 func Conflict() *AppError {
 	return &AppError{
-		Type:       ErrorTypeConflict,
 		Code:       "RESOURCE_CONFLICT",
 		Message:    ErrMsgConflictOnCreation,
 		HTTPStatus: http.StatusConflict,
@@ -231,7 +207,6 @@ func Conflict() *AppError {
 // ConflictWithDetails creates a conflict error with specific details about what conflicted
 func ConflictWithDetails(resourceType, conflictingField string) *AppError {
 	return &AppError{
-		Type:       ErrorTypeConflict,
 		Code:       "RESOURCE_CONFLICT",
 		Message:    fmt.Sprintf("The %s already exists with the provided %s", resourceType, conflictingField),
 		HTTPStatus: http.StatusConflict,
@@ -259,7 +234,6 @@ func BadRequest(detail any) *AppError {
 	}
 
 	return &AppError{
-		Type:       ErrorTypeBadRequest,
 		Code:       "BAD_REQUEST",
 		Message:    ErrMsgBadRequest,
 		HTTPStatus: http.StatusBadRequest,
@@ -283,7 +257,6 @@ func BadRequestWithCode(code, message string, details any) *AppError {
 	}
 
 	return &AppError{
-		Type:       ErrorTypeBadRequest,
 		Code:       code,
 		Message:    message,
 		HTTPStatus: http.StatusBadRequest,
@@ -296,7 +269,6 @@ func BadRequestWithCode(code, message string, details any) *AppError {
 // The details field is left empty to avoid exposing internal error messages
 func Internal(original error) *AppError {
 	return &AppError{
-		Type:        ErrorTypeInternal,
 		Code:        "INTERNAL_ERROR",
 		Message:     ErrMsgInternalError,
 		HTTPStatus:  http.StatusInternalServerError,
