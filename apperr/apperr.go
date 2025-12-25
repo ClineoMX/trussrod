@@ -38,6 +38,7 @@ type AppError struct {
 	Message     string         `json:"message"`
 	Details     string         `json:"details,omitempty"`
 	Fields      map[string]any `json:"fields,omitempty"`
+	Data        []byte         `json:"data,omitempty"`
 	TraceID     string         `json:"trace_id,omitempty"`
 	Timestamp   time.Time      `json:"timestamp"`
 	HTTPStatus  int            `json:"-"`
@@ -215,6 +216,21 @@ func ConflictWithDetails(resourceType, conflictingField string) *AppError {
 			"conflicting_field": conflictingField,
 		},
 		Timestamp: time.Now().UTC(),
+	}
+}
+
+func ConflictWithFields(fields any) *AppError {
+	var data []byte
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return Internal(err)
+	}
+
+	return &AppError{
+		Code:       "RESOURCE_CONFLICT",
+		Message:    fmt.Sprintf("The %s already exists with the provided %s", resourceType, conflictingField),
+		HTTPStatus: http.StatusConflict,
+		Data:       data,
+		Timestamp:  time.Now().UTC(),
 	}
 }
 
