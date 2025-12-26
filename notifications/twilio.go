@@ -33,9 +33,10 @@ func (t *Twilio) SendWhatsAppMessage(ctx context.Context, notification *WhatsApp
 		return err
 	}
 
+	to := fmt.Sprintf("whatsapp:%s", notification.To)
 	body := url.Values{
 		"From":             {t.fromNumber},
-		"To":               {notification.To},
+		"To":               {to},
 		"ContentSid":       {notification.TemplateID},
 		"ContentVariables": {string(variables)},
 	}
