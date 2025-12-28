@@ -68,7 +68,19 @@ func getURL(user, password, driver, host, port, name, sslmode, searchpath string
 	return u.String()
 }
 
-func NewPostgres(user, password, driver, host, port, name, sslmode, searchpath string, maxConns int) (*Postgres, error) {
+// NewPostgres creates a new Postgres client.
+// user: the username for the database
+// password: the password for the database
+// host: the host of the database
+// port: the port of the database
+// name: the name of the database
+// sslmode: the ssl mode for the database
+// searchpath: the search path for the database
+// maxConns: the maximum number of connections to the database
+// returns: a new Postgres client
+// error: if the database connection fails
+func NewPostgres(user, password, host, port, name, sslmode, searchpath string, maxConns int) (*Postgres, error) {
+	const driver = "postgres"
 	var err error
 	cfg, err := pgxpool.ParseConfig(getURL(user, password, driver, host, port, name, sslmode, searchpath))
 	if err != nil {
