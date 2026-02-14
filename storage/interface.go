@@ -5,10 +5,11 @@ package storage
 import (
 	"context"
 	"io"
-	"time"
+	"mime/multipart"
 )
 
 type Storage interface {
-	Upload(context.Context, string, io.Reader, *UploaderOptions) (string, error)
-	GetURL(context.Context, string, time.Duration) (string, error)
+	Upload(ctx context.Context, key string, file multipart.File, fileSize int64, metadata map[string]string) ([]byte, error)
+	Get(ctx context.Context, key string) (io.ReadCloser, error)
+	Delete(ctx context.Context, key string) error
 }

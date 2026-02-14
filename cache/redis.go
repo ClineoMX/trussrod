@@ -32,11 +32,18 @@ func NewRedisClient(host, port, password, db string) (*RedisClient, error) {
 	return client, nil
 }
 
-func (c *RedisClient) Get(ctx context.Context, key string) (string, error) {
-	return c.conn.Get(ctx, key).Result()
+func (c *RedisClient) Get(ctx context.Context, key string) ([]byte, error) {
+	result, err := c.conn.Get(ctx, key).Bytes()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, ErrCacheMiss
+		}
+		return nil, fmt.Errorf("%w: %v", ErrConnection, err)
+	}
+	return result, nil
 }
 
-func (c *RedisClient) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
+func (c *RedisClient) Set(ctx context.Context, key string, value []byte, expiration time.Duration) error {
 	return c.conn.Set(ctx, key, value, expiration).Err()
 }
 

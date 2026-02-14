@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/clineomx/trussrod/identity"
 	"github.com/clineomx/trussrod/keys"
 	"github.com/clineomx/trussrod/logging"
 )
@@ -26,10 +25,8 @@ type User struct {
 
 const (
 	ClineoUser          key = "CLINEO_SESSION"
-	ClineoIdentity      key = "CLINEO_IDENTITY"
 	ClineoPatient       key = "CLINEO_PATIENT"
 	ClineoDek           key = "CLINEO_DEK"
-	ClineoCredentials   key = "CLINEO_CREDENTIALS"
 	ClineoSigner        key = "CLINEO_SIGNER"
 	ClineoTraceID       key = "CLINEO_TRACE_ID"
 	ClineoRequestLogger key = "CLINEO_REQUEST_LOGGER"
@@ -50,11 +47,6 @@ const (
 	SaveAnyway QueryParam = "save_anyway"
 )
 
-func GetIdentity(r *http.Request) (string, bool) {
-	id, ok := r.Context().Value(ClineoIdentity).(string)
-	return id, ok
-}
-
 func GetUser(r *http.Request) (*User, bool) {
 	user, ok := r.Context().Value(ClineoUser).(*User)
 	return user, ok
@@ -63,11 +55,6 @@ func GetUser(r *http.Request) (*User, bool) {
 func GetPatient(r *http.Request) (string, bool) {
 	patient, ok := r.Context().Value(ClineoPatient).(string)
 	return patient, ok
-}
-
-func GetCredentials(r *http.Request) (*identity.Credentials, bool) {
-	creds, ok := r.Context().Value(ClineoCredentials).(*identity.Credentials)
-	return creds, ok
 }
 
 func GetSigner(r *http.Request) (keys.Signer, bool) {
@@ -93,14 +80,6 @@ func MustGetDek(r *http.Request) []byte {
 	return key
 }
 
-func MustGetIdentity(r *http.Request) string {
-	token, ok := GetIdentity(r)
-	if !ok {
-		panic("could not identity token from context")
-	}
-	return token
-}
-
 func MustGetUser(r *http.Request) *User {
 	user, ok := GetUser(r)
 	if !ok {
@@ -115,14 +94,6 @@ func MustGetPatient(r *http.Request) string {
 		panic("could not patient token from context")
 	}
 	return patient
-}
-
-func MustGetCredentials(r *http.Request) *identity.Credentials {
-	creds, ok := GetCredentials(r)
-	if !ok {
-		panic("could not get credentials from context")
-	}
-	return creds
 }
 
 func MustGetSigner(r *http.Request) keys.Signer {
@@ -160,12 +131,6 @@ func WithUser(r *http.Request, user *User) *http.Request {
 	return r.WithContext(ctx)
 }
 
-func WithIdentity(r *http.Request, identity string) *http.Request {
-	parent := r.Context()
-	ctx := context.WithValue(parent, ClineoIdentity, identity)
-	return r.WithContext(ctx)
-}
-
 func WithPatient(r *http.Request, patient string) *http.Request {
 	parent := r.Context()
 	ctx := context.WithValue(parent, ClineoPatient, patient)
@@ -175,12 +140,6 @@ func WithPatient(r *http.Request, patient string) *http.Request {
 func WithDEK(r *http.Request, d []byte) *http.Request {
 	parent := r.Context()
 	ctx := context.WithValue(parent, ClineoDek, d)
-	return r.WithContext(ctx)
-}
-
-func WithCredentials(r *http.Request, creds *identity.Credentials) *http.Request {
-	parent := r.Context()
-	ctx := context.WithValue(parent, ClineoCredentials, creds)
 	return r.WithContext(ctx)
 }
 
