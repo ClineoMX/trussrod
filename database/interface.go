@@ -59,4 +59,7 @@ type DB interface {
 
 	// BeginTx begins a new transaction.
 	BeginTx(ctx context.Context, opts any) (Tx, error)
+
+	// Ping checks if the database is reachable.
+	Ping(ctx context.Context) error
 }
