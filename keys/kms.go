@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/clineomx/trussrod/utils/encryption"
@@ -108,10 +107,6 @@ func (k *KMSSigner) Verify(ctx context.Context, message, signature []byte) (bool
 	return true, nil
 }
 
-func NewKMSClient(key, region string) (*KMS, error) {
-	conf, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
-	if err != nil {
-		return nil, err
-	}
-	return &KMS{client: kms.NewFromConfig(conf), keyARN: key}, nil
+func NewKMSClient(key string, cfg *aws.Config) (*KMS, error) {
+	return &KMS{client: kms.NewFromConfig(*cfg), keyARN: key}, nil
 }
