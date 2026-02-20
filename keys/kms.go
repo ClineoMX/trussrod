@@ -108,8 +108,8 @@ func (k *KMSSigner) Verify(ctx context.Context, message, signature []byte) (bool
 	return true, nil
 }
 
-func NewKMSClient(key string) (*KMS, error) {
-	conf, err := config.LoadDefaultConfig(context.Background())
+func NewKMSClient(key, region string) (*KMS, error) {
+	conf, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
 	if err != nil {
 		return nil, err
 	}
