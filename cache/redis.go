@@ -58,3 +58,8 @@ func (c *RedisClient) Del(ctx context.Context, key string) error {
 func (c *RedisClient) Ping(ctx context.Context) error {
 	return c.conn.Ping(ctx).Err()
 }
+
+func (c *RedisClient) XAdd(ctx context.Context, args any) (any, error) {
+	redisArgs := args.(*redis.XAddArgs)
+	return c.conn.XAdd(ctx, redisArgs).Result()
+}

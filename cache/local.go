@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -43,4 +44,8 @@ func (m *LocalCache) Close() error {
 
 func (m *LocalCache) Ping(ctx context.Context) error {
 	return nil
+}
+
+func (m *LocalCache) XAdd(ctx context.Context, args any) (any, error) {
+	return nil, errors.New("not implemented")
 }
