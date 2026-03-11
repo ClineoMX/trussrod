@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"strconv"
 	"time"
@@ -13,19 +14,32 @@ type RedisClient struct {
 	conn *redis.Client
 }
 
-func NewRedisClient(host, port, password, db string) (*RedisClient, error) {
+func NewRedisClient(host, port, password, db string, useSSL bool) (*RedisClient, error) {
 	uri := fmt.Sprintf("%s:%s", host, port)
 	dbInt, err := strconv.Atoi(db)
 	if err != nil {
 		return nil, err
 	}
-	client := &RedisClient{
-		conn: redis.NewClient(&redis.Options{
-			Addr:     uri,
-			Password: password,
-			DB:       dbInt,
-		}),
+	var client *RedisClient
+	if useSSL {
+		client = &RedisClient{
+			conn: redis.NewClient(&redis.Options{
+				Addr:      uri,
+				Password:  password,
+				DB:        dbInt,
+				TLSConfig: &tls.Config{},
+			}),
+		}
+	} else {
+		client = &RedisClient{
+			conn: redis.NewClient(&redis.Options{
+				Addr:     uri,
+				Password: password,
+				DB:       dbInt,
+			}),
+		}
 	}
+
 	if err := client.conn.Ping(context.Background()).Err(); err != nil {
 		return nil, err
 	}
