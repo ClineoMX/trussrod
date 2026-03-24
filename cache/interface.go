@@ -16,6 +16,5 @@ type Client interface {
 	Set(ctx context.Context, key string, value []byte, expiration time.Duration) error
 	Ping(ctx context.Context) error
 	Del(ctx context.Context, key string) error
-	XAdd(ctx context.Context, args any) (any, error)
 	Close() error
 }

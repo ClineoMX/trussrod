@@ -2,50 +2,109 @@ package cache
 
 import (
 	"context"
-	"errors"
+	"sync"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
+type CacheRecord struct {
+	Value     []byte
+	TTL       time.Duration
+	CreatedAt time.Time
+}
+
+func (r *CacheRecord) IsExpired() bool {
+	return time.Now().After(r.CreatedAt.Add(r.TTL))
+}
+
 type LocalCache struct {
-	LRU *lru.Cache[string, any]
+	mu     sync.Mutex
+	ticker *time.Ticker
+	done   chan struct{}
+	lru    *lru.Cache[string, *CacheRecord]
 }
 
 func NewLocalCache(size int) (*LocalCache, error) {
-	core, err := lru.New[string, any](size)
+	core, err := lru.New[string, *CacheRecord](size)
 	if err != nil {
 		return nil, err
 	}
-	return &LocalCache{LRU: core}, nil
-}
 
-func (m *LocalCache) Get(ctx context.Context, key string) (string, error) {
-	value, ok := m.LRU.Get(key)
-	if !ok {
-		return "", nil
+	local := &LocalCache{
+		lru:    core,
+		ticker: time.NewTicker(5 * time.Second),
+		done:   make(chan struct{}),
 	}
-	return value.(string), nil
+
+	go local.cleanupLoop()
+	return local, nil
 }
 
-func (m *LocalCache) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
-	m.LRU.Add(key, value)
+func (c *LocalCache) Get(ctx context.Context, key string) ([]byte, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	cached, ok := c.lru.Get(key)
+	if !ok {
+		return nil, ErrCacheMiss
+	}
+
+	if cached.IsExpired() {
+		c.lru.Remove(key)
+		return nil, ErrCacheMiss
+	}
+
+	return cached.Value, nil
+}
+
+func (c *LocalCache) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	record := &CacheRecord{Value: value, TTL: ttl, CreatedAt: time.Now()}
+	c.lru.Add(key, record)
 	return nil
 }
 
-func (m *LocalCache) Del(ctx context.Context, key string) error {
-	m.LRU.Remove(key)
+func (c *LocalCache) Del(ctx context.Context, key string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.lru.Remove(key)
 	return nil
 }
 
-func (m *LocalCache) Close() error {
+func (c *LocalCache) Close() error {
+	close(c.done)
 	return nil
 }
 
-func (m *LocalCache) Ping(ctx context.Context) error {
+func (c *LocalCache) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (m *LocalCache) XAdd(ctx context.Context, args any) (any, error) {
-	return nil, errors.New("not implemented")
+func (c *LocalCache) cleanupLoop() {
+	defer c.ticker.Stop()
+
+	for {
+		select {
+		case <-c.ticker.C:
+			c.removeExpired()
+		case <-c.done:
+			return
+		}
+	}
+}
+
+func (c *LocalCache) removeExpired() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, key := range c.lru.Keys() {
+		val, ok := c.lru.Peek(key)
+		if ok && val.IsExpired() {
+			c.lru.Remove(key)
+		}
+	}
 }
