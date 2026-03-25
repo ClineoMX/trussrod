@@ -171,8 +171,8 @@ func (l *Logger) WarnFields(msg string, fields map[string]any) {
 }
 
 // Error logs an error message
-func (l *Logger) Error(message string, err error) {
-	l.log(ErrorLevel, message, map[string]any{"reason": err.Error()})
+func (l *Logger) Error(err error) {
+	l.log(ErrorLevel, err.Error(), nil)
 }
 
 // ErrorFields logs error with structured fields
