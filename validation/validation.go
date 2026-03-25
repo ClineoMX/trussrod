@@ -144,7 +144,7 @@ func ValidatePayload(obj any) error {
 		}
 
 		// Use structured field errors for better API responses
-		return apperr.ValidationFailedWithFields(fieldErrors)
+		return apperr.BadRequest("invalid payload")
 	}
 	return nil
 }
