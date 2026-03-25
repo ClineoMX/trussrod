@@ -130,10 +130,10 @@ func ValidationFailedWithFields(fieldErrors map[string]string) *AppError {
 }
 
 // NotFound creates a not found error
-func NotFound() *AppError {
+func NotFound(message string) *AppError {
 	return &AppError{
 		Code:       "RESOURCE_NOT_FOUND",
-		Message:    ErrMsgResourceNotFound,
+		Message:    message,
 		HTTPStatus: http.StatusNotFound,
 		Timestamp:  time.Now().UTC(),
 	}
