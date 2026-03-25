@@ -61,6 +61,5 @@ func WithMessage(w http.ResponseWriter, status int, message string) {
 type Paginated[T any] struct {
 	Results []T `json:"results"`
 	Count   int `json:"count"`
-	Page    int `json:"page"`
 	Size    int `json:"size"`
 }
