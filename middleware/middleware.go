@@ -26,7 +26,7 @@ func HasApiKey(key string) Middleware {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			h, ok := request.GetHeader(r, request.ApiKeyHeader)
 			if !ok || h != key {
-				response.WithError(w, apperr.UnauthorizedWithReason("invalid API key"))
+				response.WithError(w, apperr.Unauthorized("invalid API key"))
 				return
 			}
 			next.ServeHTTP(w, r)

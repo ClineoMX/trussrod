@@ -83,7 +83,7 @@ func MustGetDek(r *http.Request) []byte {
 func MustGetUser(r *http.Request) *User {
 	user, ok := GetUser(r)
 	if !ok {
-		panic("could not user from context")
+		panic("could not get user from context")
 	}
 	return user
 }
@@ -91,7 +91,7 @@ func MustGetUser(r *http.Request) *User {
 func MustGetPatient(r *http.Request) string {
 	patient, ok := GetPatient(r)
 	if !ok {
-		panic("could not patient token from context")
+		panic("could not get patient token from context")
 	}
 	return patient
 }
