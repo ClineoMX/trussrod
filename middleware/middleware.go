@@ -60,7 +60,7 @@ func Recovery(logger *logging.Logger) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					rid := chimiddleware.GetReqID(r)
+					rid := chimiddleware.GetReqID(r.Context())
 					reqLogger := logger.WithTraceID(rid)
 
 					// Log the panic
@@ -90,7 +90,7 @@ func Recovery(logger *logging.Logger) Middleware {
 func Logging(logger *logging.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			rid := chimiddleware.GetReqID(r)
+			rid := chimiddleware.GetReqID(r.Context())
 			wrapped := logging.NewResponseWriter(w)
 
 			reqLogger := logger.WithTraceID(rid)
