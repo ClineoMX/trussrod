@@ -160,8 +160,8 @@ func (a *DatabaseAuditor) worker() {
 
 const AuditorKey string = "CLINEO_AUDITOR"
 
-func FromContext(ctx context.Context) *Auditor {
-	auditor, ok := ctx.Value(AuditorKey).(*Auditor)
+func FromContext(ctx context.Context) Auditor {
+	auditor, ok := ctx.Value(AuditorKey).(Auditor)
 	if !ok {
 		return nil
 	}
