@@ -14,6 +14,7 @@ import (
 	"github.com/clineomx/trussrod/logging"
 	"github.com/clineomx/trussrod/request"
 	"github.com/clineomx/trussrod/response"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 // Middleware type alias for http.Handler.
@@ -59,7 +60,7 @@ func Recovery(logger *logging.Logger) Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					rid := request.MustGetTraceID(r)
+					rid := chimiddleware.GetReqID(r)
 					reqLogger := logger.WithTraceID(rid)
 
 					// Log the panic
@@ -89,7 +90,7 @@ func Recovery(logger *logging.Logger) Middleware {
 func Logging(logger *logging.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			rid := request.MustGetTraceID(r)
+			rid := chimiddleware.GetReqID(r)
 			wrapped := logging.NewResponseWriter(w)
 
 			reqLogger := logger.WithTraceID(rid)
