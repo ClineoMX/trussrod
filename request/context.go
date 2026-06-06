@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/clineomx/trussrod/audit"
 	"github.com/clineomx/trussrod/keys"
 	"github.com/clineomx/trussrod/logging"
 )
@@ -31,6 +32,7 @@ const (
 	ClineoSigner        key = "CLINEO_SIGNER"
 	ClineoTraceID       key = "CLINEO_TRACE_ID"
 	ClineoRequestLogger key = "CLINEO_REQUEST_LOGGER"
+	ClineoAuditor       key = "CLINEO_AUDITOR"
 )
 
 const (
@@ -69,8 +71,21 @@ func GetTraceID(r *http.Request) (string, bool) {
 }
 
 func GetRequestLogger(r *http.Request) (*logging.Logger, bool) {
-	log, ok := r.Context().Value("CLINEO_REQUEST_LOGGER").(*logging.Logger)
+	log, ok := r.Context().Value(ClineoRequestLogger).(*logging.Logger)
 	return log, ok
+}
+
+func GetAuditor(r *http.Request) (*audit.Auditor, bool) {
+	auditor, ok := r.Context().Value(ClineoAuditor).(*audit.Auditor)
+	return auditor, ok
+}
+
+func MustGetAuditor(r *http.Request) *audit.Auditor {
+	auditor, ok := GetAuditor(r)
+	if !ok {
+		panic("could not get auditor from context")
+	}
+	return auditor
 }
 
 func MustGetDek(r *http.Request) []byte {
@@ -159,6 +174,12 @@ func WithTraceID(r *http.Request, rid string) *http.Request {
 func WithLogger(r *http.Request, logger *logging.Logger) *http.Request {
 	parent := r.Context()
 	ctx := context.WithValue(parent, logging.RequestLogger, logger)
+	return r.WithContext(ctx)
+}
+
+func WithAuditor(r *http.Request, auditor *audit.Auditor) *http.Request {
+	parent := r.Context()
+	ctx := context.WithValue(parent, ClineoAuditor, auditor)
 	return r.WithContext(ctx)
 }
 
