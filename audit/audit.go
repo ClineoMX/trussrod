@@ -126,6 +126,7 @@ func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 }
 
 func (a *DatabaseAuditor) Log(ctx context.Context, log *Log) {
+	log.UpdateFromFields(a.fields)
 	select {
 	case a.queue <- log:
 	default:

@@ -32,7 +32,6 @@ const (
 	ClineoSigner        key = "CLINEO_SIGNER"
 	ClineoTraceID       key = "CLINEO_TRACE_ID"
 	ClineoRequestLogger key = "CLINEO_REQUEST_LOGGER"
-	ClineoAuditor       key = "CLINEO_AUDITOR"
 )
 
 const (
@@ -75,12 +74,12 @@ func GetRequestLogger(r *http.Request) (*logging.Logger, bool) {
 	return log, ok
 }
 
-func GetAuditor(r *http.Request) (*audit.Auditor, bool) {
-	auditor, ok := r.Context().Value(ClineoAuditor).(*audit.Auditor)
+func GetAuditor(r *http.Request) (audit.Auditor, bool) {
+	auditor, ok := r.Context().Value(audit.AuditorKey).(audit.Auditor)
 	return auditor, ok
 }
 
-func MustGetAuditor(r *http.Request) *audit.Auditor {
+func MustGetAuditor(r *http.Request) audit.Auditor {
 	auditor, ok := GetAuditor(r)
 	if !ok {
 		panic("could not get auditor from context")
@@ -179,7 +178,7 @@ func WithLogger(r *http.Request, logger *logging.Logger) *http.Request {
 
 func WithAuditor(r *http.Request, auditor audit.Auditor) *http.Request {
 	parent := r.Context()
-	ctx := context.WithValue(parent, ClineoAuditor, auditor)
+	ctx := context.WithValue(parent, audit.AuditorKey, auditor)
 	return r.WithContext(ctx)
 }
 
