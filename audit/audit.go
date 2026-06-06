@@ -39,8 +39,9 @@ type Log struct {
 	BeforeState  any     `json:"before_state"`
 	AfterState   any     `json:"after_state"`
 	IPAddress    *string `json:"ip_address"`
+	UserAgent    *string `json:"user_agent"`
+	RequestID    *string `json:"request_id"`
 	SessionID    *string `json:"session_id"`
-	Reason       *string `json:"reason"`
 }
 
 func stringPtrFromField(fields map[string]any, key string) *string {
@@ -77,8 +78,11 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	if _, ok := fields["session_id"]; ok {
 		l.SessionID = stringPtrFromField(fields, "session_id")
 	}
-	if _, ok := fields["reason"]; ok {
-		l.Reason = stringPtrFromField(fields, "reason")
+	if _, ok := fields["user_agent"]; ok {
+		l.UserAgent = stringPtrFromField(fields, "user_agent")
+	}
+	if _, ok := fields["request_id"]; ok {
+		l.RequestID = stringPtrFromField(fields, "request_id")
 	}
 	if _, ok := fields["patient_id"]; ok {
 		l.PatientID = stringPtrFromField(fields, "patient_id")
@@ -89,8 +93,11 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	if l.SessionID == nil {
 		l.SessionID = stringPtrFromField(fields, "session_id")
 	}
-	if l.Reason == nil {
-		l.Reason = stringPtrFromField(fields, "reason")
+	if l.UserAgent == nil {
+		l.UserAgent = stringPtrFromField(fields, "user_agent")
+	}
+	if l.RequestID == nil {
+		l.RequestID = stringPtrFromField(fields, "request_id")
 	}
 	if l.PatientID == nil {
 		l.PatientID = stringPtrFromField(fields, "patient_id")
@@ -116,9 +123,9 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 	log.UpdateFromFields(a.fields)
 	_, err := a.db.Exec(ctx, `
-		INSERT INTO audit_log (event_type, actor_id, actor_role, patient_id, resource_type, resource_id, action, before_state, after_state, ip_address, session_id, reason)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
-	`, log.EventType, log.ActorID, log.ActorRole, log.PatientID, log.ResourceType, log.ResourceID, log.Action, log.BeforeState, log.AfterState, log.IPAddress, log.SessionID, log.Reason)
+		INSERT INTO audit_log (event_type, actor_id, actor_role, patient_id, resource_type, resource_id, action_taken, before_state, after_state, ip_address, session_id, user_agent, request_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+	`, log.EventType, log.ActorID, log.ActorRole, log.PatientID, log.ResourceType, log.ResourceID, log.Action, log.BeforeState, log.AfterState, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
 	if err != nil {
 		return err
 	}
