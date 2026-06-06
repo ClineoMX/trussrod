@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/clineomx/trussrod/apperr"
 	"github.com/clineomx/trussrod/database"
@@ -12,12 +11,14 @@ import (
 
 type Auditor interface {
 	Log(ctx context.Context, log *Log)
+	WithContext(fields map[string]any) Auditor
 }
 
 type DatabaseAuditor struct {
 	db     database.DB
 	queue  chan *Log
 	logger *logging.Logger
+	fields map[string]any
 }
 
 func NewDatabaseAuditor(db database.DB, logger *logging.Logger) *DatabaseAuditor {
@@ -27,26 +28,75 @@ func NewDatabaseAuditor(db database.DB, logger *logging.Logger) *DatabaseAuditor
 }
 
 type Log struct {
-	EventType    string    `json:"event_type"`
-	ActorID      string    `json:"actor_id"`
-	ActorRole    string    `json:"actor_role"`
-	PatientID    *string   `json:"patient_id"`
-	ResourceType *string   `json:"resource_type"`
-	ResourceID   *string   `json:"resource_id"`
-	Action       string    `json:"action"`
-	BeforeState  any       `json:"before_state"`
-	AfterState   any       `json:"after_state"`
-	IPAddress    *string   `json:"ip_address"`
-	SessionID    *string   `json:"session_id"`
-	Reason       *string   `json:"reason"`
-	Timestamp    time.Time `json:"timestamp"`
+	EventType    string  `json:"event_type"`
+	ActorID      string  `json:"actor_id"`
+	ActorRole    string  `json:"actor_role"`
+	PatientID    *string `json:"patient_id"`
+	ResourceType *string `json:"resource_type"`
+	ResourceID   *string `json:"resource_id"`
+	Action       string  `json:"action"`
+	BeforeState  any     `json:"before_state"`
+	AfterState   any     `json:"after_state"`
+	IPAddress    *string `json:"ip_address"`
+	SessionID    *string `json:"session_id"`
+	Reason       *string `json:"reason"`
+}
+
+func stringPtrFromField(fields map[string]any, key string) *string {
+	v, ok := fields[key]
+	if !ok || v == nil {
+		return nil
+	}
+	switch s := v.(type) {
+	case *string:
+		return s
+	case string:
+		return &s
+	default:
+		return nil
+	}
+}
+
+func (l *Log) UpdateFromFields(fields map[string]any) {
+	if fields == nil {
+		return
+	}
+	if l.IPAddress == nil {
+		l.IPAddress = stringPtrFromField(fields, "ip_address")
+	}
+	if l.SessionID == nil {
+		l.SessionID = stringPtrFromField(fields, "session_id")
+	}
+	if l.Reason == nil {
+		l.Reason = stringPtrFromField(fields, "reason")
+	}
+	if l.PatientID == nil {
+		l.PatientID = stringPtrFromField(fields, "patient_id")
+	}
+	if l.ResourceType == nil {
+		l.ResourceType = stringPtrFromField(fields, "resource_type")
+	}
+	if l.ResourceID == nil {
+		l.ResourceID = stringPtrFromField(fields, "resource_id")
+	}
+	if l.BeforeState == nil {
+		if v, ok := fields["before_state"]; ok {
+			l.BeforeState = v
+		}
+	}
+	if l.AfterState == nil {
+		if v, ok := fields["after_state"]; ok {
+			l.AfterState = v
+		}
+	}
 }
 
 func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
+	log.UpdateFromFields(a.fields)
 	_, err := a.db.Exec(ctx, `
-		INSERT INTO audit_log (timestamp, event_type, actor_id, actor_role, patient_id, resource_type, resource_id, action, before_state, after_state, ip_address, session_id, reason)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
-	`, log.Timestamp, log.EventType, log.ActorID, log.ActorRole, log.PatientID, log.ResourceType, log.ResourceID, log.Action, log.BeforeState, log.AfterState, log.IPAddress, log.SessionID, log.Reason)
+		INSERT INTO audit_log (event_type, actor_id, actor_role, patient_id, resource_type, resource_id, action, before_state, after_state, ip_address, session_id, reason)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+	`, log.EventType, log.ActorID, log.ActorRole, log.PatientID, log.ResourceType, log.ResourceID, log.Action, log.BeforeState, log.AfterState, log.IPAddress, log.SessionID, log.Reason)
 	if err != nil {
 		return err
 	}
@@ -61,6 +111,22 @@ func (a *DatabaseAuditor) Log(ctx context.Context, log *Log) {
 		a.logger.ErrorFields("audit queue full, logging to stderr", err, map[string]any{
 			"event": log,
 		})
+	}
+}
+
+func (a *DatabaseAuditor) WithContext(fields map[string]any) Auditor {
+	newFields := make(map[string]any)
+	for k, v := range a.fields {
+		newFields[k] = v
+	}
+	for k, v := range fields {
+		newFields[k] = v
+	}
+	return &DatabaseAuditor{
+		db:     a.db,
+		queue:  a.queue,
+		logger: a.logger,
+		fields: newFields,
 	}
 }
 
