@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"errors"
+	"maps"
 
 	"github.com/clineomx/trussrod/apperr"
 	"github.com/clineomx/trussrod/database"
@@ -11,7 +12,7 @@ import (
 
 type Auditor interface {
 	Log(ctx context.Context, log *Log)
-	WithContext(fields map[string]any) Auditor
+	WithFields(fields map[string]any) Auditor
 }
 
 type DatabaseAuditor struct {
@@ -114,14 +115,10 @@ func (a *DatabaseAuditor) Log(ctx context.Context, log *Log) {
 	}
 }
 
-func (a *DatabaseAuditor) WithContext(fields map[string]any) Auditor {
+func (a *DatabaseAuditor) WithFields(fields map[string]any) Auditor {
 	newFields := make(map[string]any)
-	for k, v := range a.fields {
-		newFields[k] = v
-	}
-	for k, v := range fields {
-		newFields[k] = v
-	}
+	maps.Copy(newFields, a.fields)
+	maps.Copy(newFields, fields)
 	return &DatabaseAuditor{
 		db:     a.db,
 		queue:  a.queue,
