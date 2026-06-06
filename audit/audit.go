@@ -62,6 +62,27 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	if fields == nil {
 		return
 	}
+	if actorID, ok := fields["actor_id"]; ok {
+		l.ActorID = actorID.(string)
+	}
+	if actorRole, ok := fields["actor_role"]; ok {
+		l.ActorRole = actorRole.(string)
+	}
+	if eventType, ok := fields["event_type"]; ok {
+		l.EventType = eventType.(string)
+	}
+	if action, ok := fields["action"]; ok {
+		l.Action = action.(string)
+	}
+	if _, ok := fields["session_id"]; ok {
+		l.SessionID = stringPtrFromField(fields, "session_id")
+	}
+	if _, ok := fields["reason"]; ok {
+		l.Reason = stringPtrFromField(fields, "reason")
+	}
+	if _, ok := fields["patient_id"]; ok {
+		l.PatientID = stringPtrFromField(fields, "patient_id")
+	}
 	if l.IPAddress == nil {
 		l.IPAddress = stringPtrFromField(fields, "ip_address")
 	}
