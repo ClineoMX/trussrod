@@ -16,11 +16,12 @@ type ApiAction string
 type QueryParam string
 
 type User struct {
-	Role     string
-	Name     string
-	Lastname string
-	ID       string
-	CMKARN   string
+	Role      string
+	Name      string
+	Lastname  string
+	ID        string
+	CMKARN    string
+	SessionID string
 }
 
 const (
