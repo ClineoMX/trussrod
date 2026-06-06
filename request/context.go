@@ -177,7 +177,7 @@ func WithLogger(r *http.Request, logger *logging.Logger) *http.Request {
 	return r.WithContext(ctx)
 }
 
-func WithAuditor(r *http.Request, auditor *audit.Auditor) *http.Request {
+func WithAuditor(r *http.Request, auditor audit.Auditor) *http.Request {
 	parent := r.Context()
 	ctx := context.WithValue(parent, ClineoAuditor, auditor)
 	return r.WithContext(ctx)
