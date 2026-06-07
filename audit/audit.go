@@ -32,16 +32,13 @@ type Log struct {
 	EventType    string  `json:"event_type"`
 	ActorID      string  `json:"actor_id"`
 	ActorRole    string  `json:"actor_role"`
-	PatientID    *string `json:"patient_id"`
 	ResourceType *string `json:"resource_type"`
 	ResourceID   *string `json:"resource_id"`
-	Action       string  `json:"action"`
-	BeforeState  any     `json:"before_state"`
-	AfterState   any     `json:"after_state"`
 	IPAddress    *string `json:"ip_address"`
 	UserAgent    *string `json:"user_agent"`
 	RequestID    *string `json:"request_id"`
 	SessionID    *string `json:"session_id"`
+	Metadata     any     `json:"metadata"`
 }
 
 func stringPtrFromField(fields map[string]any, key string) *string {
@@ -72,9 +69,6 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	if eventType, ok := fields["event_type"]; ok {
 		l.EventType = eventType.(string)
 	}
-	if action, ok := fields["action"]; ok {
-		l.Action = action.(string)
-	}
 	if _, ok := fields["session_id"]; ok {
 		l.SessionID = stringPtrFromField(fields, "session_id")
 	}
@@ -83,9 +77,6 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	}
 	if _, ok := fields["request_id"]; ok {
 		l.RequestID = stringPtrFromField(fields, "request_id")
-	}
-	if _, ok := fields["patient_id"]; ok {
-		l.PatientID = stringPtrFromField(fields, "patient_id")
 	}
 	if l.IPAddress == nil {
 		l.IPAddress = stringPtrFromField(fields, "ip_address")
@@ -99,37 +90,24 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	if l.RequestID == nil {
 		l.RequestID = stringPtrFromField(fields, "request_id")
 	}
-	if l.PatientID == nil {
-		l.PatientID = stringPtrFromField(fields, "patient_id")
-	}
 	if l.ResourceType == nil {
 		l.ResourceType = stringPtrFromField(fields, "resource_type")
 	}
 	if l.ResourceID == nil {
 		l.ResourceID = stringPtrFromField(fields, "resource_id")
 	}
-	if l.BeforeState == nil {
-		if v, ok := fields["before_state"]; ok {
-			l.BeforeState = v
-		}
-	}
-	if l.AfterState == nil {
-		if v, ok := fields["after_state"]; ok {
-			l.AfterState = v
-		}
+	if l.Metadata == nil {
+		l.Metadata = fields["metadata"]
 	}
 }
 
 func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 	log.UpdateFromFields(a.fields)
 	_, err := a.db.Exec(ctx, `
-		INSERT INTO audit_log (event_type, actor_id, actor_role, patient_id, resource_type, resource_id, action_taken, before_state, after_state, ip_address, session_id, user_agent, request_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
-	`, log.EventType, log.ActorID, log.ActorRole, log.PatientID, log.ResourceType, log.ResourceID, log.Action, log.BeforeState, log.AfterState, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
-	if err != nil {
-		return err
-	}
-	return nil
+		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_type, resource_id, metadata, ip_address, session_id, user_agent, request_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+	`, log.EventType, log.ActorID, log.ActorRole, log.ResourceType, log.ResourceID, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
+	return err
 }
 
 func (a *DatabaseAuditor) Log(ctx context.Context, log *Log) {
