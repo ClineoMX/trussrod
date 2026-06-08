@@ -10,6 +10,7 @@ type Manager interface {
 	Wrap(ctx context.Context, input []byte) ([]byte, error)
 	Unwrap(ctx context.Context, input []byte) ([]byte, error)
 	CreateSigner(key string) Signer
+	Key() string
 }
 
 type Signer interface {

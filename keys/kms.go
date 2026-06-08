@@ -94,6 +94,10 @@ func (k *KMS) Unwrap(ctx context.Context, wrapped []byte) ([]byte, error) {
 	return dek, nil
 }
 
+func (k *KMS) Key() string {
+	return k.keyARN
+}
+
 type KMSSigner struct {
 	key    string
 	client *kms.Client
