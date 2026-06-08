@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 type Changeset struct {
@@ -34,6 +35,13 @@ func (c *Changeset) SetStringIfNotNil(column string, value *string) *Changeset {
 }
 
 func (c *Changeset) SetBytesIfNotNil(column string, value *[]byte) *Changeset {
+	if value != nil {
+		c.Set(column, *value)
+	}
+	return c
+}
+
+func (c *Changeset) SetTimeIfNotNil(column string, value *time.Time) *Changeset {
 	if value != nil {
 		c.Set(column, *value)
 	}
