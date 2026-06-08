@@ -7,6 +7,8 @@ import (
 type Manager interface {
 	Decrypt(ctx context.Context, target []byte) ([]byte, error)
 	CreateDEK(ctx context.Context) ([]byte, []byte, error)
+	Wrap(ctx context.Context, input []byte) ([]byte, error)
+	Unwrap(ctx context.Context, input []byte) ([]byte, error)
 	CreateSigner(key string) Signer
 }
 

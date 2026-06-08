@@ -25,7 +25,7 @@ func (s *spyDB) Exec(_ context.Context, _ string, args ...any) (database.Result,
 		EventType: args[0].(string),
 		ActorID:   args[1].(string),
 		ActorRole: args[2].(string),
-		Action:    args[6].(string),
+		Metadata:  args[6],
 	}
 	if v := args[9]; v != nil {
 		ip := v.(*string)
@@ -86,7 +86,7 @@ func TestDatabaseAuditor_WithFieldsLogPersistsMetadata(t *testing.T) {
 
 	scoped.Log(context.Background(), &Log{
 		EventType: "note.read",
-		Action:    "read",
+		Metadata:  map[string]any{"action": "read"},
 	})
 
 	got := waitForPersistedLog(t, db)
@@ -113,7 +113,7 @@ func TestDatabaseAuditor_RootWorkerAppliesChildWithFieldsMetadata(t *testing.T) 
 
 	child.Log(context.Background(), &Log{
 		EventType: "patient.view",
-		Action:    "read",
+		Metadata:  map[string]any{"action": "read"},
 	})
 
 	got := waitForPersistedLog(t, db)

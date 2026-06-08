@@ -3,9 +3,13 @@ package keys
 import (
 	"context"
 	"crypto"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
+	"io"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -14,8 +18,9 @@ import (
 )
 
 type KMS struct {
-	client *kms.Client
-	keyARN string
+	client   *kms.Client
+	keyARN   string
+	localKEK []byte
 }
 
 func (k *KMS) Decrypt(ctx context.Context, target []byte) ([]byte, error) {
@@ -40,6 +45,53 @@ func (k *KMS) CreateDEK(ctx context.Context) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 	return out.Plaintext, out.CiphertextBlob, nil
+}
+
+func (k *KMS) Wrap(ctx context.Context, input []byte) ([]byte, error) {
+	block, err := aes.NewCipher(k.localKEK)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+
+	wrapped := gcm.Seal(nonce, nonce, input, nil)
+	return wrapped, nil
+
+}
+
+func (k *KMS) Unwrap(ctx context.Context, wrapped []byte) ([]byte, error) {
+	block, err := aes.NewCipher(k.localKEK)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(wrapped) < nonceSize {
+		return nil, fmt.Errorf("wrapped key too short")
+	}
+
+	nonce, ciphertext := wrapped[:nonceSize], wrapped[nonceSize:]
+
+	dek, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unwrap local key: %w", err)
+	}
+
+	return dek, nil
 }
 
 type KMSSigner struct {
@@ -108,5 +160,9 @@ func (k *KMSSigner) Verify(ctx context.Context, message, signature []byte) (bool
 }
 
 func NewKMSClient(key string, cfg *aws.Config) (*KMS, error) {
-	return &KMS{client: kms.NewFromConfig(*cfg), keyARN: key}, nil
+	kek := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, kek); err != nil {
+		return nil, fmt.Errorf("failed to generate local KEK: %w", err)
+	}
+	return &KMS{client: kms.NewFromConfig(*cfg), keyARN: key, localKEK: kek}, nil
 }
