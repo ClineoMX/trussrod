@@ -32,8 +32,7 @@ type Log struct {
 	EventType    string  `json:"event_type"`
 	ActorID      string  `json:"actor_id"`
 	ActorRole    string  `json:"actor_role"`
-	ResourceType *string `json:"resource_type"`
-	ResourceID   *string `json:"resource_id"`
+	ResourcePath *string `json:"resource_path"`
 	IPAddress    *string `json:"ip_address"`
 	UserAgent    *string `json:"user_agent"`
 	RequestID    *string `json:"request_id"`
@@ -90,11 +89,8 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 	if l.RequestID == nil {
 		l.RequestID = stringPtrFromField(fields, "request_id")
 	}
-	if l.ResourceType == nil {
-		l.ResourceType = stringPtrFromField(fields, "resource_type")
-	}
-	if l.ResourceID == nil {
-		l.ResourceID = stringPtrFromField(fields, "resource_id")
+	if l.ResourcePath == nil {
+		l.ResourcePath = stringPtrFromField(fields, "resource_path")
 	}
 	if l.Metadata == nil {
 		l.Metadata = fields["metadata"]
@@ -104,9 +100,9 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 	log.UpdateFromFields(a.fields)
 	_, err := a.db.Exec(ctx, `
-		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_type, resource_id, metadata, ip_address, session_id, user_agent, request_id)
+		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_path, metadata, ip_address, session_id, user_agent, request_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
-	`, log.EventType, log.ActorID, log.ActorRole, log.ResourceType, log.ResourceID, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
+	`, log.EventType, log.ActorID, log.ActorRole, log.ResourcePath, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
 	return err
 }
 
