@@ -101,7 +101,7 @@ func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 	log.UpdateFromFields(a.fields)
 	_, err := a.db.Exec(ctx, `
 		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_path, metadata, ip_address, session_id, user_agent, request_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`, log.EventType, log.ActorID, log.ActorRole, log.ResourcePath, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
 	return err
 }
