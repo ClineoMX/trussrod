@@ -18,12 +18,12 @@ type Claims interface {
 
 type CognitoAccessClaims struct {
 	jwt.RegisteredClaims
-	groups   []string `json:"cognito:groups"`
-	clientId string   `json:"client_id,omitempty"`
-	scope    string   `json:"scope,omitempty"`
-	Use      string   `json:"token_use"`
-	username string   `json:"cognito:username"`
-	userId   string   `json:"sub"`
+	Groups []string `json:"cognito:groups"`
+	Client string   `json:"client_id,omitempty"`
+	Bound  string   `json:"scope,omitempty"`
+	Use    string   `json:"token_use"`
+	User   string   `json:"cognito:username"`
+	Sub    string   `json:"sub"`
 }
 
 func (c *CognitoAccessClaims) TokenUse() string {
@@ -31,27 +31,27 @@ func (c *CognitoAccessClaims) TokenUse() string {
 }
 
 func (c *CognitoAccessClaims) ClientId() string {
-	return c.clientId
+	return c.Client
 }
 
 func (c *CognitoAccessClaims) Username() string {
-	return c.username
+	return c.User
 }
 
 func (c *CognitoAccessClaims) UserID() string {
-	return c.userId
+	return c.Sub
 }
 
 func (c *CognitoAccessClaims) Role() string {
-	if len(c.groups) == 0 {
+	if len(c.Groups) == 0 {
 		return "NONE"
 	}
 
-	return strings.ToUpper(strings.TrimSpace(c.groups[0]))
+	return strings.ToUpper(strings.TrimSpace(c.Groups[0]))
 }
 
 func (c *CognitoAccessClaims) Scope() string {
-	return c.scope
+	return c.Bound
 }
 
 func (c *CognitoAccessClaims) JTI() string {
