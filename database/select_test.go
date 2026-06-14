@@ -46,7 +46,7 @@ func TestSelect_ColumnSingle(t *testing.T) {
 
 func TestSelect_Where(t *testing.T) {
 	s := NewSelect("users").
-		Column("id", "name").
+		Columns("id", "name").
 		Where("id", "user-1")
 
 	query, args := s.Build()
@@ -65,7 +65,7 @@ func TestSelect_Where(t *testing.T) {
 
 func TestSelect_WhereMultiple(t *testing.T) {
 	s := NewSelect("users").
-		Column("id").
+		Columns("id").
 		Where("tenant_id", "tenant-1").
 		Where("active", true)
 
@@ -82,7 +82,7 @@ func TestSelect_WhereMultiple(t *testing.T) {
 
 func TestSelect_OrderByLimitOffset(t *testing.T) {
 	s := NewSelect("posts").
-		Column("id", "title").
+		Columns("id", "title").
 		Where("author_id", "author-1").
 		OrderBy("created_at", "DESC").
 		Limit(10).
@@ -101,7 +101,7 @@ func TestSelect_OrderByLimitOffset(t *testing.T) {
 
 func TestSelect_LimitOffsetZeroOmitted(t *testing.T) {
 	s := NewSelect("users").
-		Column("id").
+		Columns("id").
 		Limit(0).
 		Offset(0)
 
@@ -132,7 +132,7 @@ func TestSelect_BuildFull(t *testing.T) {
 			name: "columns and where",
 			build: func() *Select {
 				return NewSelect("items").
-					Column("id").
+					Columns("id").
 					Where("status", "active")
 			},
 			wantQuery: "SELECT id FROM items WHERE status = $1",
@@ -142,7 +142,7 @@ func TestSelect_BuildFull(t *testing.T) {
 			name: "order by without where",
 			build: func() *Select {
 				return NewSelect("items").
-					Column("id").
+					Columns("id").
 					OrderBy("created_at", "ASC")
 			},
 			wantQuery: "SELECT id FROM items ORDER BY created_at ASC",
@@ -152,7 +152,7 @@ func TestSelect_BuildFull(t *testing.T) {
 			name: "limit without offset",
 			build: func() *Select {
 				return NewSelect("items").
-					Column("id").
+					Columns("id").
 					Limit(5)
 			},
 			wantQuery: "SELECT id FROM items LIMIT 5",
@@ -175,7 +175,7 @@ func TestSelect_BuildFull(t *testing.T) {
 
 func TestSelect_InnerJoin(t *testing.T) {
 	s := NewSelect("users").
-		Column("users.id", "orders.total").
+		Columns("users.id", "orders.total").
 		InnerJoin("orders", "orders.user_id = users.id")
 
 	query, args := s.Build()
@@ -191,7 +191,7 @@ func TestSelect_InnerJoin(t *testing.T) {
 
 func TestSelect_LeftJoinEq(t *testing.T) {
 	s := NewSelect("users").
-		Column("users.id", "profiles.bio").
+		Columns("users.id", "profiles.bio").
 		LeftJoinEq("profiles", "profiles.user_id", "users.id")
 
 	query, _ := s.Build()
@@ -204,7 +204,7 @@ func TestSelect_LeftJoinEq(t *testing.T) {
 
 func TestSelect_MultipleJoins(t *testing.T) {
 	s := NewSelect("users").
-		Column("users.id").
+		Columns("users.id").
 		InnerJoinEq("orders", "orders.user_id", "users.id").
 		LeftJoin("order_items", "order_items.order_id = orders.id")
 
@@ -218,7 +218,7 @@ func TestSelect_MultipleJoins(t *testing.T) {
 
 func TestSelect_JoinWithWhere(t *testing.T) {
 	s := NewSelect("users").
-		Column("users.id", "orders.total").
+		Columns("users.id", "orders.total").
 		InnerJoinEq("orders", "orders.user_id", "users.id").
 		Where("users.active", true)
 
@@ -235,7 +235,7 @@ func TestSelect_JoinWithWhere(t *testing.T) {
 
 func TestSelect_JoinOnWithWhere(t *testing.T) {
 	s := NewSelect("users").
-		Column("users.id").
+		Columns("users.id").
 		Where("users.active", true).
 		InnerJoinOn("orders", "orders.status", "pending")
 
@@ -252,7 +252,7 @@ func TestSelect_JoinOnWithWhere(t *testing.T) {
 
 func TestSelect_RightAndFullJoin(t *testing.T) {
 	s := NewSelect("users").
-		Column("users.id").
+		Columns("users.id").
 		RightJoin("orders", "orders.user_id = users.id").
 		FullJoin("archives", "archives.user_id = users.id")
 
