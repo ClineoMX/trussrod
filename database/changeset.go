@@ -64,7 +64,7 @@ func (c *Changeset) Where(column string, value any) *Changeset {
 	c.where += fmt.Sprintf("%s = $%d", column, c.Index)
 	c.whereArgs = append(c.whereArgs, value)
 	c.Index++
-	return c.Where(fmt.Sprintf("%s = $%d", column, c.Index), value)
+	return c
 }
 
 func (c *Changeset) OrderBy(column string, direction string) *Changeset {
