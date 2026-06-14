@@ -173,10 +173,107 @@ func TestSelect_BuildFull(t *testing.T) {
 	}
 }
 
+func TestSelect_InnerJoin(t *testing.T) {
+	s := NewSelect("users").
+		Column("users.id", "orders.total").
+		InnerJoin("orders", "orders.user_id = users.id")
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT users.id, orders.total FROM users INNER JOIN orders ON orders.user_id = users.id"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if args != nil && len(args) != 0 {
+		t.Fatalf("expected no args, got %v", args)
+	}
+}
+
+func TestSelect_LeftJoinEq(t *testing.T) {
+	s := NewSelect("users").
+		Column("users.id", "profiles.bio").
+		LeftJoinEq("profiles", "profiles.user_id", "users.id")
+
+	query, _ := s.Build()
+
+	wantQuery := "SELECT users.id, profiles.bio FROM users LEFT JOIN profiles ON profiles.user_id = users.id"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+}
+
+func TestSelect_MultipleJoins(t *testing.T) {
+	s := NewSelect("users").
+		Column("users.id").
+		InnerJoinEq("orders", "orders.user_id", "users.id").
+		LeftJoin("order_items", "order_items.order_id = orders.id")
+
+	query, _ := s.Build()
+
+	wantQuery := "SELECT users.id FROM users INNER JOIN orders ON orders.user_id = users.id LEFT JOIN order_items ON order_items.order_id = orders.id"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+}
+
+func TestSelect_JoinWithWhere(t *testing.T) {
+	s := NewSelect("users").
+		Column("users.id", "orders.total").
+		InnerJoinEq("orders", "orders.user_id", "users.id").
+		Where("users.active", true)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT users.id, orders.total FROM users INNER JOIN orders ON orders.user_id = users.id WHERE users.active = $1"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{true}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestSelect_JoinOnWithWhere(t *testing.T) {
+	s := NewSelect("users").
+		Column("users.id").
+		Where("users.active", true).
+		InnerJoinOn("orders", "orders.status", "pending")
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT users.id FROM users INNER JOIN orders ON orders.status = $1 WHERE users.active = $2"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"pending", true}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestSelect_RightAndFullJoin(t *testing.T) {
+	s := NewSelect("users").
+		Column("users.id").
+		RightJoin("orders", "orders.user_id = users.id").
+		FullJoin("archives", "archives.user_id = users.id")
+
+	query, _ := s.Build()
+
+	wantQuery := "SELECT users.id FROM users RIGHT JOIN orders ON orders.user_id = users.id FULL JOIN archives ON archives.user_id = users.id"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+}
+
 func TestSelect_ChainingReturnsSameBuilder(t *testing.T) {
 	s := NewSelect("users")
 	if s.Column("id") != s {
 		t.Fatal("Column should return the same select for chaining")
+	}
+	if s.InnerJoin("orders", "orders.user_id = users.id") != s {
+		t.Fatal("InnerJoin should return the same select for chaining")
+	}
+	if s.LeftJoinEq("profiles", "profiles.user_id", "users.id") != s {
+		t.Fatal("LeftJoinEq should return the same select for chaining")
 	}
 	if s.Where("id", 1) != s {
 		t.Fatal("Where should return the same select for chaining")
