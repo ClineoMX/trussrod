@@ -58,10 +58,13 @@ func (c *Changeset) SetTimeIfNotNil(column string, value *time.Time) *Changeset 
 }
 
 func (c *Changeset) Where(column string, value any) *Changeset {
-	c.where = fmt.Sprintf("%s = $%d", column, c.Index)
+	if c.where != "" {
+		c.where += " AND "
+	}
+	c.where += fmt.Sprintf("%s = $%d", column, c.Index)
 	c.whereArgs = append(c.whereArgs, value)
 	c.Index++
-	return c
+	return c.Where(fmt.Sprintf("%s = $%d", column, c.Index), value)
 }
 
 func (c *Changeset) OrderBy(column string, direction string) *Changeset {
