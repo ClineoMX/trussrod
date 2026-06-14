@@ -2,15 +2,24 @@ package database
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type Changeset struct {
-	table   string
-	clauses []string
-	args    []any
-	Index   int
+	table         string
+	clauses       []string
+	args          []any
+	Index         int
+	where         string
+	whereArgs     []any
+	returning     string
+	returningArgs []any
+	orderBy       string
+	orderByArgs   []any
+	limit         int
+	offset        int
 }
 
 func NewChangeset(table string) *Changeset {
@@ -48,26 +57,58 @@ func (c *Changeset) SetTimeIfNotNil(column string, value *time.Time) *Changeset 
 	return c
 }
 
-func (c *Changeset) Build(where string, whereArgs ...any) (string, []any, error) {
-	if len(c.clauses) == 0 {
-		return "", nil, fmt.Errorf("no fields to update")
-	}
+func (c *Changeset) Where(column string, value any) *Changeset {
+	c.where = fmt.Sprintf("%s = $%d", column, c.Index)
+	c.whereArgs = append(c.whereArgs, value)
+	c.Index++
+	return c
+}
 
+func (c *Changeset) OrderBy(column string, direction string) *Changeset {
+	c.orderBy = fmt.Sprintf("%s %s", column, direction)
+	return c
+}
+
+func (c *Changeset) Limit(limit int) *Changeset {
+	c.limit = limit
+	return c
+}
+
+func (c *Changeset) Offset(offset int) *Changeset {
+	c.offset = offset
+	return c
+}
+
+func (c *Changeset) Returning(columns ...string) *Changeset {
+	c.returning = strings.Join(columns, ", ")
+	return c
+}
+
+func (c *Changeset) Build() (string, []any) {
 	query := fmt.Sprintf("UPDATE %s SET %s",
 		c.table,
 		strings.Join(c.clauses, ", "),
 	)
 
-	if where != "" {
-		finalWhere := where
-		for i, arg := range whereArgs {
-			placeholder := fmt.Sprintf("$%d", c.Index+i)
-			finalWhere = strings.Replace(finalWhere, "?", placeholder, 1)
-			c.args = append(c.args, arg)
-		}
-
-		query += " WHERE " + finalWhere
+	if c.where != "" {
+		query += " WHERE " + c.where
 	}
 
-	return query, c.args, nil
+	if c.orderBy != "" {
+		query += " ORDER BY " + c.orderBy
+	}
+
+	if c.limit > 0 {
+		query += " LIMIT " + strconv.Itoa(c.limit)
+	}
+
+	if c.offset > 0 {
+		query += " OFFSET " + strconv.Itoa(c.offset)
+	}
+
+	if c.returning != "" {
+		query += " RETURNING " + c.returning
+	}
+
+	return query, append(c.args, c.whereArgs...)
 }
