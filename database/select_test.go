@@ -20,7 +20,7 @@ func TestNewSelect(t *testing.T) {
 
 func TestSelect_Column(t *testing.T) {
 	s := NewSelect("users").
-		Column("id", "name", "email")
+		Columns("id", "name", "email")
 
 	query, args := s.Build()
 
@@ -34,7 +34,7 @@ func TestSelect_Column(t *testing.T) {
 }
 
 func TestSelect_ColumnSingle(t *testing.T) {
-	s := NewSelect("users").Column("count(*)")
+	s := NewSelect("users").Columns("count(*)")
 
 	query, _ := s.Build()
 
@@ -123,7 +123,7 @@ func TestSelect_BuildFull(t *testing.T) {
 		{
 			name: "columns only",
 			build: func() *Select {
-				return NewSelect("items").Column("id", "status")
+				return NewSelect("items").Columns("id", "status")
 			},
 			wantQuery: "SELECT id, status FROM items",
 			wantArgs:  nil,
@@ -264,10 +264,65 @@ func TestSelect_RightAndFullJoin(t *testing.T) {
 	}
 }
 
+func TestSelect_WhereIfNotNil_SkipsNil(t *testing.T) {
+	s := NewSelect("users").
+		Columns("id").
+		Where("patient_id", "patient-1").
+		WhereIfNotNil("status", nil)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT id FROM users WHERE patient_id = $1"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"patient-1"}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+	if s.Index != 2 {
+		t.Fatalf("expected Index 2 after skipped nil, got %d", s.Index)
+	}
+}
+
+func TestSelect_WhereIfNotNil_IncludesValue(t *testing.T) {
+	status := "active"
+	s := NewSelect("users").
+		Columns("id").
+		WhereIfNotNil("status", status)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT id FROM users WHERE status = $1"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"active"}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestSelect_WhereIfNotNil_MixedWithWhere(t *testing.T) {
+	s := NewSelect("notes n").
+		Columns("n.id").
+		Where("n.patient_id", "patient-1").
+		WhereIfNotNil("n.status", nil).
+		Where("n.author", "author-1")
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT n.id FROM notes n WHERE n.patient_id = $1 AND n.author = $2"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"patient-1", "author-1"}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
 func TestSelect_ChainingReturnsSameBuilder(t *testing.T) {
 	s := NewSelect("users")
-	if s.Column("id") != s {
-		t.Fatal("Column should return the same select for chaining")
+	if s.Columns("id") != s {
+		t.Fatal("Columns should return the same select for chaining")
 	}
 	if s.InnerJoin("orders", "orders.user_id = users.id") != s {
 		t.Fatal("InnerJoin should return the same select for chaining")
@@ -277,6 +332,9 @@ func TestSelect_ChainingReturnsSameBuilder(t *testing.T) {
 	}
 	if s.Where("id", 1) != s {
 		t.Fatal("Where should return the same select for chaining")
+	}
+	if s.WhereIfNotNil("status", nil) != s {
+		t.Fatal("WhereIfNotNil should return the same select for chaining")
 	}
 	if s.OrderBy("name", "ASC") != s {
 		t.Fatal("OrderBy should return the same select for chaining")

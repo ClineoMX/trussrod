@@ -42,7 +42,7 @@ func NewSelect(table string) *Select {
 	}
 }
 
-func (s *Select) Column(columns ...string) *Select {
+func (s *Select) Columns(columns ...string) *Select {
 	s.columns = append(s.columns, columns...)
 	return s
 }
@@ -88,6 +88,15 @@ func (s *Select) InnerJoinOn(table, column string, value any) *Select {
 }
 
 func (s *Select) Where(column string, value any) *Select {
+	s.whereConditions = append(s.whereConditions, whereCondition{column: column, value: value})
+	s.Index++
+	return s
+}
+
+func (s *Select) WhereIfNotNil(column string, value any) *Select {
+	if value == nil {
+		return s
+	}
 	s.whereConditions = append(s.whereConditions, whereCondition{column: column, value: value})
 	s.Index++
 	return s
