@@ -1,6 +1,7 @@
 package request
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -24,4 +25,25 @@ func MustGetPathValue(r *http.Request, key PathParameter) string {
 		panic("could not retrieve parameter from url")
 	}
 	return value
+}
+
+func GetQueryParamsAs[T any](r *http.Request) (T, error) {
+	query := r.URL.Query()
+	var t T
+	filters := make(map[string]any)
+
+	for key, values := range query {
+		filters[key] = values[0]
+	}
+
+	m, err := json.Marshal(filters)
+	if err != nil {
+		return t, err
+	}
+
+	if err := json.Unmarshal(m, &t); err != nil {
+		return t, err
+	}
+
+	return t, nil
 }
