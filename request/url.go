@@ -27,23 +27,17 @@ func MustGetPathValue(r *http.Request, key PathParameter) string {
 	return value
 }
 
-func GetQueryParamsAs[T any](r *http.Request) (T, error) {
+func GetQueryParamsAs[T any](r *http.Request) T {
 	query := r.URL.Query()
-	var t T
+	var t = new(T)
 	filters := make(map[string]any)
 
 	for key, values := range query {
 		filters[key] = values[0]
 	}
 
-	m, err := json.Marshal(filters)
-	if err != nil {
-		return t, err
-	}
+	m, _ := json.Marshal(filters)
+	json.Unmarshal(m, &t)
 
-	if err := json.Unmarshal(m, &t); err != nil {
-		return t, err
-	}
-
-	return t, nil
+	return *t
 }
