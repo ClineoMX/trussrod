@@ -63,3 +63,9 @@ type DB interface {
 	// Ping checks if the database is reachable.
 	Ping(ctx context.Context) error
 }
+
+type Queryable interface {
+	Query(ctx context.Context, sql string, args ...any) (Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) Row
+	Exec(ctx context.Context, sql string, args ...any) (Result, error)
+}
