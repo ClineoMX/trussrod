@@ -2,13 +2,19 @@ package database
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
+var placeholderRE = regexp.MustCompile(`\$(\d+)`)
+
 type whereCondition struct {
-	column string
-	value  any
+	kind      string
+	column    string
+	value     any
+	subselect *Select
+	exprArgs  []any
 }
 
 type joinClause struct {
@@ -88,7 +94,7 @@ func (s *Select) InnerJoinOn(table, column string, value any) *Select {
 }
 
 func (s *Select) Where(column string, value any) *Select {
-	s.whereConditions = append(s.whereConditions, whereCondition{column: column, value: value})
+	s.whereConditions = append(s.whereConditions, whereCondition{kind: "eq", column: column, value: value})
 	s.Index++
 	return s
 }
@@ -97,8 +103,16 @@ func (s *Select) WhereIfNotNil(column string, value any) *Select {
 	if value == nil {
 		return s
 	}
-	s.whereConditions = append(s.whereConditions, whereCondition{column: column, value: value})
+	s.whereConditions = append(s.whereConditions, whereCondition{kind: "eq", column: column, value: value})
 	s.Index++
+	return s
+}
+
+// WhereExpr appends a raw SQL predicate to the WHERE clause.
+// expr may use $1, $2, … placeholders; values are bound via args.
+func (s *Select) WhereExpr(expr string, args ...any) *Select {
+	s.whereConditions = append(s.whereConditions, whereCondition{kind: "expr", column: expr, exprArgs: args})
+	s.Index += len(args)
 	return s
 }
 
@@ -150,12 +164,46 @@ func (s *Select) buildWhere(index int, args *[]any) (string, int) {
 
 	clauses := make([]string, 0, len(s.whereConditions))
 	for _, condition := range s.whereConditions {
-		clauses = append(clauses, fmt.Sprintf("%s = $%d", condition.column, index))
-		*args = append(*args, condition.value)
-		index++
+		switch condition.kind {
+		case "exists":
+			subquery, subArgs := condition.subselect.Build()
+			clauses = append(clauses, fmt.Sprintf("EXISTS (%s)", shiftPlaceholders(subquery, index-1)))
+			*args = append(*args, subArgs...)
+			index += len(subArgs)
+		case "expr":
+			clauses = append(clauses, shiftPlaceholders(condition.column, index-1))
+			*args = append(*args, condition.exprArgs...)
+			index += len(condition.exprArgs)
+		default:
+			clauses = append(clauses, fmt.Sprintf("%s = $%d", condition.column, index))
+			*args = append(*args, condition.value)
+			index++
+		}
 	}
 
 	return " WHERE " + strings.Join(clauses, " AND "), index
+}
+
+func shiftPlaceholders(query string, offset int) string {
+	if offset == 0 {
+		return query
+	}
+
+	return placeholderRE.ReplaceAllStringFunc(query, func(match string) string {
+		n, _ := strconv.Atoi(match[1:])
+		return fmt.Sprintf("$%d", n+offset)
+	})
+}
+
+// Exists adds an EXISTS (subquery) predicate to the WHERE clause.
+func (s *Select) Exists(sub *Select) *Select {
+	_, subArgs := sub.Build()
+	s.whereConditions = append(s.whereConditions, whereCondition{
+		kind:      "exists",
+		subselect: sub,
+	})
+	s.Index += len(subArgs)
+	return s
 }
 
 func (s *Select) Build() (string, []any) {

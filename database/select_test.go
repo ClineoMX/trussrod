@@ -345,4 +345,100 @@ func TestSelect_ChainingReturnsSameBuilder(t *testing.T) {
 	if s.Offset(1) != s {
 		t.Fatal("Offset should return the same select for chaining")
 	}
+	sub := NewSelect("orders").Columns("1").WhereExpr("orders.user_id = users.id")
+	if s.Exists(sub) != s {
+		t.Fatal("Exists should return the same select for chaining")
+	}
+}
+
+func TestSelect_Exists(t *testing.T) {
+	grants := NewSelect("orders").
+		Columns("1").
+		WhereExpr("orders.user_id = users.id").
+		Where("orders.status", "pending")
+
+	s := NewSelect("users").
+		Columns("id").
+		Exists(grants)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT id FROM users WHERE EXISTS (SELECT 1 FROM orders WHERE orders.user_id = users.id AND orders.status = $1)"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"pending"}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestSelect_ExistsWithWhere(t *testing.T) {
+	grants := NewSelect("orders").
+		Columns("1").
+		WhereExpr("orders.user_id = users.id").
+		Where("orders.status", "pending")
+
+	s := NewSelect("users").
+		Columns("id").
+		Where("active", true).
+		Exists(grants)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT id FROM users WHERE active = $1 AND EXISTS (SELECT 1 FROM orders WHERE orders.user_id = users.id AND orders.status = $2)"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{true, "pending"}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestSelect_ExistsAfterJoin(t *testing.T) {
+	items := NewSelect("order_items").
+		Columns("1").
+		WhereExpr("order_items.order_id = orders.id").
+		Where("order_items.sku", "ABC")
+
+	s := NewSelect("users").
+		Columns("users.id").
+		InnerJoinOn("orders", "orders.status", "open").
+		Exists(items)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT users.id FROM users INNER JOIN orders ON orders.status = $1 WHERE EXISTS (SELECT 1 FROM order_items WHERE order_items.order_id = orders.id AND order_items.sku = $2)"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"open", "ABC"}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
+}
+
+func TestSelect_ExistsGrantsOnPatients(t *testing.T) {
+	userID := "user-1"
+
+	grants := NewSelect("grants g").
+		Columns("1").
+		WhereExpr("g.resource_id = p.id").
+		Where("g.resource_type", "patient").
+		Where("g.user_id", userID).
+		WhereExpr("g.action IN ('read', 'full_access')").
+		WhereExpr("g.is_active").
+		WhereExpr("(g.expires_at IS NULL OR g.expires_at > NOW())")
+
+	s := NewSelect("patients p").
+		Columns("p.id", "p.name", "p.phone").
+		Exists(grants)
+
+	query, args := s.Build()
+
+	wantQuery := "SELECT p.id, p.name, p.phone FROM patients p WHERE EXISTS (SELECT 1 FROM grants g WHERE g.resource_id = p.id AND g.resource_type = $1 AND g.user_id = $2 AND g.action IN ('read', 'full_access') AND g.is_active AND (g.expires_at IS NULL OR g.expires_at > NOW()))"
+	if query != wantQuery {
+		t.Fatalf("expected query %q, got %q", wantQuery, query)
+	}
+	if !reflect.DeepEqual(args, []any{"patient", userID}) {
+		t.Fatalf("unexpected args: %v", args)
+	}
 }
