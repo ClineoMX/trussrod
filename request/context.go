@@ -31,7 +31,6 @@ const (
 	ClineoDek           key = "CLINEO_DEK"
 	ClineoSigner        key = "CLINEO_SIGNER"
 	ClineoTraceID       key = "CLINEO_TRACE_ID"
-	ClineoRequestLogger key = "CLINEO_REQUEST_LOGGER"
 )
 
 const (
@@ -70,7 +69,7 @@ func GetTraceID(r *http.Request) (string, bool) {
 }
 
 func GetRequestLogger(r *http.Request) (*logging.Logger, bool) {
-	log, ok := r.Context().Value(ClineoRequestLogger).(*logging.Logger)
+	log, ok := r.Context().Value(logging.RequestLogger).(*logging.Logger)
 	return log, ok
 }
 
