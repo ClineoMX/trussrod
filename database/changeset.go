@@ -61,6 +61,10 @@ func (c *Changeset) Where(column string, value any) *Changeset {
 	if c.where != "" {
 		c.where += " AND "
 	}
+	if value == nil {
+		c.where += column + " IS NULL"
+		return c
+	}
 	c.where += fmt.Sprintf("%s = $%d", column, c.Index)
 	c.whereArgs = append(c.whereArgs, value)
 	c.Index++
