@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -102,6 +103,13 @@ func (s *Select) Where(column string, value any) *Select {
 func (s *Select) WhereIfNotNil(column string, value any) *Select {
 	if value == nil {
 		return s
+	}
+	rv := reflect.ValueOf(value)
+	switch rv.Kind() {
+	case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Interface:
+		if rv.IsNil() {
+			return s
+		}
 	}
 	s.whereConditions = append(s.whereConditions, whereCondition{kind: "eq", column: column, value: value})
 	s.Index++
