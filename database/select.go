@@ -116,6 +116,28 @@ func (s *Select) WhereIfNotNil(column string, value any) *Select {
 	return s
 }
 
+func (s *Select) WhereNot(column string, value any) *Select {
+	s.whereConditions = append(s.whereConditions, whereCondition{kind: "neq", column: column, value: value})
+	s.Index++
+	return s
+}
+
+func (s *Select) WhereNotIfNotNil(column string, value any) *Select {
+	if value == nil {
+		return s
+	}
+	rv := reflect.ValueOf(value)
+	switch rv.Kind() {
+	case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Interface:
+		if rv.IsNil() {
+			return s
+		}
+	}
+	s.whereConditions = append(s.whereConditions, whereCondition{kind: "neq", column: column, value: value})
+	s.Index++
+	return s
+}
+
 // WhereExpr appends a raw SQL predicate to the WHERE clause.
 // expr may use $1, $2, … placeholders; values are bound via args.
 func (s *Select) WhereExpr(expr string, args ...any) *Select {
@@ -182,6 +204,10 @@ func (s *Select) buildWhere(index int, args *[]any) (string, int) {
 			clauses = append(clauses, shiftPlaceholders(condition.column, index-1))
 			*args = append(*args, condition.exprArgs...)
 			index += len(condition.exprArgs)
+		case "neq":
+			clauses = append(clauses, fmt.Sprintf("%s != $%d", condition.column, index))
+			*args = append(*args, condition.value)
+			index++
 		default:
 			clauses = append(clauses, fmt.Sprintf("%s = $%d", condition.column, index))
 			*args = append(*args, condition.value)
