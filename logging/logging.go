@@ -294,6 +294,14 @@ func (rw *ResponseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
+// Flush forwards to the underlying ResponseWriter if it supports flushing,
+// so the wrapper preserves http.Flusher for streaming handlers (e.g. SSE).
+func (rw *ResponseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 const RequestLogger string = "CLINEO_REQUEST_LOGGER"
 
 func FromContext(ctx context.Context) *Logger {
