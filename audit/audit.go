@@ -28,16 +28,26 @@ func NewDatabaseAuditor(db database.DB, logger *logging.Logger) *DatabaseAuditor
 	return a
 }
 
+type LogLevel string
+
+const (
+	Success LogLevel = "success"
+	Info    LogLevel = "info"
+	Warning LogLevel = "warning"
+	Error   LogLevel = "error"
+)
+
 type Log struct {
-	EventType    string  `json:"event_type"`
-	ActorID      string  `json:"actor_id"`
-	ActorRole    string  `json:"actor_role"`
-	ResourcePath *string `json:"resource_path"`
-	IPAddress    *string `json:"ip_address"`
-	UserAgent    *string `json:"user_agent"`
-	RequestID    *string `json:"request_id"`
-	SessionID    *string `json:"session_id"`
-	Metadata     any     `json:"metadata"`
+	EventType    string   `json:"event_type"`
+	Level        LogLevel `json:"level"`
+	ActorID      string   `json:"actor_id"`
+	ActorRole    string   `json:"actor_role"`
+	ResourcePath *string  `json:"resource_path"`
+	IPAddress    *string  `json:"ip_address"`
+	UserAgent    *string  `json:"user_agent"`
+	RequestID    *string  `json:"request_id"`
+	SessionID    *string  `json:"session_id"`
+	Metadata     any      `json:"metadata"`
 }
 
 func stringPtrFromField(fields map[string]any, key string) *string {
@@ -100,9 +110,9 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 	log.UpdateFromFields(a.fields)
 	_, err := a.db.Exec(ctx, `
-		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_path, metadata, ip_address, session_id, user_agent, request_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
-	`, log.EventType, log.ActorID, log.ActorRole, log.ResourcePath, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID)
+		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_path, metadata, ip_address, session_id, user_agent, request_id, level)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+	`, log.EventType, log.ActorID, log.ActorRole, log.ResourcePath, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID, log.Level)
 	return err
 }
 
