@@ -11,9 +11,10 @@ import (
 )
 
 type spyDB struct {
-	mu   sync.Mutex
-	logs []*Log
-	done chan struct{}
+	mu          sync.Mutex
+	logs        []*Log
+	actorIDArgs []any
+	done        chan struct{}
 }
 
 func newSpyDB() *spyDB {
@@ -23,17 +24,20 @@ func newSpyDB() *spyDB {
 func (s *spyDB) Exec(_ context.Context, _ string, args ...any) (database.Result, error) {
 	log := &Log{
 		EventType: args[0].(string),
-		ActorID:   args[1].(string),
 		ActorRole: args[2].(string),
-		Metadata:  args[6],
+		Metadata:  args[4],
 	}
-	if v := args[9]; v != nil {
+	if v := args[1]; v != nil {
+		log.ActorID = v.(string)
+	}
+	if v := args[5]; v != nil {
 		ip := v.(*string)
 		log.IPAddress = ip
 	}
 
 	s.mu.Lock()
 	s.logs = append(s.logs, log)
+	s.actorIDArgs = append(s.actorIDArgs, args[1])
 	s.mu.Unlock()
 	s.done <- struct{}{}
 	return spyResult{}, nil
@@ -70,6 +74,16 @@ func waitForPersistedLog(t *testing.T, db *spyDB) *Log {
 		t.Fatal("expected persisted audit log")
 	}
 	return db.logs[len(db.logs)-1]
+}
+
+func lastActorIDArg(t *testing.T, db *spyDB) any {
+	t.Helper()
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if len(db.actorIDArgs) == 0 {
+		t.Fatal("expected persisted audit log")
+	}
+	return db.actorIDArgs[len(db.actorIDArgs)-1]
 }
 
 func TestDatabaseAuditor_WithFieldsLogPersistsMetadata(t *testing.T) {
@@ -122,5 +136,27 @@ func TestDatabaseAuditor_RootWorkerAppliesChildWithFieldsMetadata(t *testing.T) 
 	}
 	if got.ActorRole != "nurse" {
 		t.Fatalf("expected worker to persist child actor_role, got %q", got.ActorRole)
+	}
+}
+
+func TestDatabaseAuditor_LogWithoutActorIDPersistsNilActorID(t *testing.T) {
+	db := newSpyDB()
+	logger := logging.New(logging.Config{Level: "info", ServiceName: "test", Environment: "test"})
+	auditor := NewDatabaseAuditor(db, logger)
+
+	auditor.Log(context.Background(), &Log{
+		EventType: "login.failed",
+		ActorRole: "unknown",
+		Metadata:  map[string]any{"reason": "bad_credentials"},
+	})
+
+	got := waitForPersistedLog(t, db)
+	if got.ActorID != "" {
+		t.Fatalf("expected empty ActorID on captured log, got %q", got.ActorID)
+	}
+
+	arg := lastActorIDArg(t, db)
+	if arg != nil {
+		t.Fatalf("expected actor_id arg passed to Exec to be nil, got %v (%T)", arg, arg)
 	}
 }

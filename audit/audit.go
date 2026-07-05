@@ -70,7 +70,9 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 		return
 	}
 	if actorID, ok := fields["actor_id"]; ok {
-		l.ActorID = actorID.(string)
+		if s, ok := actorID.(string); ok {
+			l.ActorID = s
+		}
 	}
 	if actorRole, ok := fields["actor_role"]; ok {
 		l.ActorRole = actorRole.(string)
@@ -109,10 +111,16 @@ func (l *Log) UpdateFromFields(fields map[string]any) {
 
 func (a *DatabaseAuditor) Write(ctx context.Context, log *Log) error {
 	log.UpdateFromFields(a.fields)
+
+	var actorID any
+	if log.ActorID != "" {
+		actorID = log.ActorID
+	}
+
 	_, err := a.db.Exec(ctx, `
 		INSERT INTO audit_log (event_type, actor_id, actor_role, resource_path, metadata, ip_address, session_id, user_agent, request_id, level)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
-	`, log.EventType, log.ActorID, log.ActorRole, log.ResourcePath, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID, log.Level)
+	`, log.EventType, actorID, log.ActorRole, log.ResourcePath, log.Metadata, log.IPAddress, log.SessionID, log.UserAgent, log.RequestID, log.Level)
 	return err
 }
 
