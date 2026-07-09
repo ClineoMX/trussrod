@@ -95,3 +95,10 @@ func translate(err error) error {
 	}
 	return err
 }
+
+func NewCognitoClient(userPool string, c client) *CognitoClient {
+	return &CognitoClient{
+		UserPool: userPool,
+		client:   c,
+	}
+}
